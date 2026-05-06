@@ -216,3 +216,4 @@ Ele:
 - inicializa saldo com `100.0000`;
 - gera transações de exemplo;
 - atualiza os saldos com `Decimal`.
+
