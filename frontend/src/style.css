@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #F5F5F5;
+  --color-brand-primary: #2B4641;
+  --color-brand-secondary: #CDDBDE;
+  --color-brand-accent: #00D1FF;
+  --color-brand-deep: #001B3D;
+  --color-brand-text: #1A1A1A;
+  --color-brand-muted: #64748b;
+  --color-brand-border: #e2e8f0;
+
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-inter: "Inter", sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+    font-family: var(--font-inter);
+    @apply antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-montserrat);
+    @apply font-bold tracking-tight text-brand-primary;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+  }
+
+  .btn-primary {
+    @apply bg-brand-primary text-white hover:bg-brand-primary/90 shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-brand-secondary text-brand-primary hover:bg-brand-secondary/80;
+  }
+
+  .btn-outline {
+    @apply border border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 bg-white border border-brand-border rounded-md text-sm text-brand-text placeholder-brand-muted focus:outline-none focus:ring-1 focus:ring-brand-primary focus:border-brand-primary transition-all;
+  }
+
+  .card {
+    @apply bg-white border border-brand-border rounded-lg shadow-sm overflow-hidden;
+  }
+
+  .badge {
+    @apply px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider;
+  }
+}
