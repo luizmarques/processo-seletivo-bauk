@@ -1,8 +1,15 @@
 // Serviço HTTP centralizado – todas as chamadas à API passam por aqui
 import axios from 'axios';
 
+function resolveApiUrl(): string {
+  const apiUrl = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.API_URL?.trim() ?? '';
+
+  // Relative fallback keeps the frontend operable even when env exposure is misconfigured.
+  return apiUrl.length > 0 ? apiUrl : 'http://localhost:3000';
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: resolveApiUrl(),
 });
 
 // Interceptor: injeta token JWT em cada request

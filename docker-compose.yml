@@ -26,9 +26,9 @@ services:
 
   frontend:
     build:
-      context: ./fronted
+      context: ./frontend
     env_file:
-      - ./fronted/.env
+      - ./frontend/.env
     depends_on:
       - backend
     ports:

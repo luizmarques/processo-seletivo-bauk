@@ -1,21 +1,28 @@
 import { normalizeMoneyInput } from './money';
 
-const DEFAULT_IDEMPOTENCY_TIME_WINDOW_SECONDS = 5;
+const DEFAULT_IDEMPOTENCY_TIME_COMPONENT = '10';
 
-function resolveTimeWindowSeconds(): number {
-  const rawValue = Number(import.meta.env.VITE_IDEMPOTENCY_TIME_WINDOW_SECONDS ?? DEFAULT_IDEMPOTENCY_TIME_WINDOW_SECONDS);
-  return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : DEFAULT_IDEMPOTENCY_TIME_WINDOW_SECONDS;
+function resolveTimeComponent(providedTime?: string): string {
+  const explicitTime =
+    providedTime?.trim() ??
+    import.meta.env.VITE_IDEMPOTENCY_TIME?.trim() ??
+    import.meta.env.IDEMPOTENCY_TIME?.trim() ??
+    import.meta.env.IDEMPOTENCY_TIME_SECONDS?.trim() ??
+    '';
+
+  return explicitTime.length > 0 ? explicitTime : DEFAULT_IDEMPOTENCY_TIME_COMPONENT;
 }
 
 export function buildTransferIdempotencyKey(input: {
   senderUsername: string;
   recipientUsername: string;
   value: string;
+  time?: string;
 }): string {
   const senderUsername = input.senderUsername.trim().toLowerCase();
   const recipientUsername = input.recipientUsername.trim().toLowerCase();
   const normalizedValue = normalizeMoneyInput(input.value);
-  const timeBucket = Math.floor(Date.now() / (resolveTimeWindowSeconds() * 1000));
+  const time = resolveTimeComponent(input.time);
 
-  return `${senderUsername}:${recipientUsername}:${normalizedValue}:${timeBucket}`;
+  return `${senderUsername}:${recipientUsername}:${normalizedValue}:${time}`;
 }

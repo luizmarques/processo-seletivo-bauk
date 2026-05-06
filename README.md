@@ -10,6 +10,7 @@ Aplicação fullstack para transferências internas entre usuários, composta po
 - `Redis`
 - autenticação JWT
 - idempotência obrigatória por `Idempotency-Key`
+- chave de idempotência no formato `usuario:destinatario:valor:time`
 
 ## Subida com Docker
 
@@ -61,9 +62,11 @@ curl -X POST http://localhost:3000/auth/login \
 curl -X POST http://localhost:3000/wallet/transfer \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <JWT>' \
-  -H 'Idempotency-Key: janedoe-johndoe-value-time' \
+  -H 'Idempotency-Key: janedoe:johndoe:10.0000:202605061200' \
   -d '{"username":"johndoe","value":"10.0000"}'
 ```
+
+No frontend, o sufixo `time` pode ser definido por `VITE_IDEMPOTENCY_TIME`. Se a variável não for informada, a aplicação mantém o bucket temporal anterior usando `VITE_IDEMPOTENCY_TIME_WINDOW_SECONDS`.
 
 ## Consultas de histórico
 

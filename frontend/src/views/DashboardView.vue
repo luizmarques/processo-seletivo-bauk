@@ -561,6 +561,7 @@ async function handleTransfer() {
         senderUsername: auth.username ?? "",
         recipientUsername: validation.data.recipientUsername,
         value: normalizedTransferValue,
+        time: import.meta.env.IDEMPOTENCY_TIME_SECONDS,
       }),
       username: validation.data.recipientUsername,
       value: normalizedTransferValue,
