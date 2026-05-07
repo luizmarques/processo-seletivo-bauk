@@ -3,8 +3,8 @@ import {
   ResourceConflictError,
   ResourceNotFoundError,
   ValidationDomainError,
-} from '../shared/domain/errors/domain.errors';
-import { createHttpTestApp, type HttpTestAppContext } from './http-test-app.factory';
+} from '../src/shared/domain/errors/domain.errors';
+import { createHttpTestApp, type HttpTestAppContext } from '../src/modules/http-test-app.factory';
 
 describe('Business Rules E2E', () => {
   let context: HttpTestAppContext;
