@@ -19,8 +19,8 @@ export interface PaginatedTransactions {
 
 export interface TransactionRepository {
   executeTransfer(input: {
-    senderAccount: { id: string; balance: string };
-    recipientAccount: { id: string; balance: string };
+    senderAccountId: string;
+    recipientAccountId: string;
     value: string;
   }): Promise<TransactionEntity>;
   listByAccount(filters: TransactionFilters): Promise<PaginatedTransactions>;
