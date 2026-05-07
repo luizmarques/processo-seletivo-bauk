@@ -15,7 +15,7 @@
       <AppCard>
         <form @submit.prevent="handleLogin" class="space-y-5">
           <AppInput
-            label="ID de Usuário"
+            label="Nome do usuário"
             v-model="username"
             placeholder="Digite seu username"
             required
@@ -28,6 +28,10 @@
             required
           />
           
+          <div v-if="feedback" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 p-3 rounded border border-emerald-100">
+            {{ feedback }}
+          </div>
+
           <div v-if="error" class="text-[11px] font-bold text-red-600 bg-red-50 p-3 rounded border border-red-100">
             {{ error }}
           </div>
@@ -53,24 +57,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import AppButton from '../components/AppButton.vue';
 import AppInput from '../components/AppInput.vue';
 import AppCard from '../components/AppCard.vue';
 import BaukLogo from '../components/BaukLogo.vue';
+import { toPassword, toUsername } from '../types/value-objects';
 import { getFirstValidationMessage, loginFormSchema } from '../validation/forms';
 
 const username = ref('');
 const password = ref('');
 const error = ref('');
+const feedback = ref('');
 const loading = ref(false);
 const auth = useAuthStore();
+const route = useRoute();
 const router = useRouter();
+
+onMounted(async () => {
+  const message = route.query.message;
+  if (typeof message !== 'string' || message.length === 0) {
+    return;
+  }
+
+  feedback.value = message;
+  await router.replace({ path: route.path });
+});
 
 async function handleLogin() {
   error.value = '';
+  feedback.value = '';
   const validation = loginFormSchema.safeParse({
     username: username.value,
     password: password.value,
@@ -85,7 +103,10 @@ async function handleLogin() {
   password.value = validation.data.password;
   loading.value = true;
   try {
-    await auth.login(username.value, password.value);
+    await auth.login({
+      username: toUsername(username.value),
+      password: toPassword(password.value),
+    });
     router.push('/dashboard');
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Falha na autenticação';

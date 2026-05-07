@@ -1,17 +1,19 @@
+import { toMoneyAmount, type MoneyAmount } from '../types/value-objects';
+
 const INTERNAL_SCALE = 4;
 const DISPLAY_SCALE = 2;
 
-export function normalizeMoneyInput(value: string): string {
+export function normalizeMoneyInput(value: string): MoneyAmount {
   const normalized = value.trim().replace(',', '.');
   if (!/^\d+(\.\d{1,4})?$/.test(normalized)) {
-    return normalized;
+    return toMoneyAmount(normalized);
   }
 
   const [integerPart, fractionalPart = ''] = normalized.split('.');
-  return `${integerPart}.${fractionalPart.padEnd(INTERNAL_SCALE, '0')}`;
+  return toMoneyAmount(`${integerPart}.${fractionalPart.padEnd(INTERNAL_SCALE, '0')}`);
 }
 
-export function formatMoneyForDisplay(value: string | number): string {
+export function formatMoneyForDisplay(value: MoneyAmount | number): string {
   const normalized = normalizeMoneyInput(String(value));
   if (!/^\d+\.\d{4}$/.test(normalized)) {
     return String(value);

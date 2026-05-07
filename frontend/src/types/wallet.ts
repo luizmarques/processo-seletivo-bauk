@@ -1,46 +1,58 @@
+import type {
+  AccountId,
+  EntityId,
+  ISODateString,
+  IdempotencyKey,
+  MoneyAmount,
+  PageNumber,
+  PageSize,
+  TotalItems,
+  Username,
+} from './value-objects';
+
 export type TransactionType = 'cash-in' | 'cash-out';
 export type TransactionOrder = 'ASC' | 'DESC';
 
 export interface WalletBalanceResponse {
-  balance: string;
+  balance: MoneyAmount;
 }
 
 export interface TransferRequest {
-  idempotencyKey: string;
-  username: string;
-  value: string;
+  idempotencyKey: IdempotencyKey;
+  username: Username;
+  value: MoneyAmount;
 }
 
 export interface TransferResponse {
-  id: string;
-  value: string;
+  id: EntityId;
+  value: MoneyAmount;
 }
 
 export interface TransactionFilters {
-  page: number;
-  limit: number;
-  startDate?: string;
-  endDate?: string;
+  page: PageNumber;
+  limit: PageSize;
+  startDate?: ISODateString;
+  endDate?: ISODateString;
   type?: TransactionType;
   order: TransactionOrder;
 }
 
 export interface WalletTransaction {
-  id: string;
-  debitedAccountId: string;
-  debitedUsername: string;
-  creditedAccountId: string;
-  creditedUsername: string;
-  value: string;
-  createdAt: string;
+  id: EntityId;
+  debitedAccountId: AccountId;
+  debitedUsername: Username;
+  creditedAccountId: AccountId;
+  creditedUsername: Username;
+  value: MoneyAmount;
+  createdAt: ISODateString;
   type: TransactionType;
 }
 
 export interface WalletTransactionsResponse {
   data: WalletTransaction[];
   meta: {
-    total: number;
-    page: number;
-    limit: number;
+    total: TotalItems;
+    page: PageNumber;
+    limit: PageSize;
   };
 }

@@ -1,11 +1,12 @@
 // Serviço HTTP centralizado – todas as chamadas à API passam por aqui
 import axios from 'axios';
+import { toApiUrl, type ApiUrl } from '../types/value-objects';
 
-function resolveApiUrl(): string {
+function resolveApiUrl(): ApiUrl {
   const apiUrl = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.API_URL?.trim() ?? '';
 
   // Relative fallback keeps the frontend operable even when env exposure is misconfigured.
-  return apiUrl.length > 0 ? apiUrl : 'http://localhost:3000';
+  return toApiUrl(apiUrl.length > 0 ? apiUrl : 'http://localhost:3000');
 }
 
 const api = axios.create({

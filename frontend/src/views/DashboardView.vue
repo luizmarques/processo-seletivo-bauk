@@ -33,8 +33,10 @@
           </div>
           <div class="h-6 sm:h-8 w-px bg-brand-border mx-1 sm:mx-2"></div>
           <AppButton
-            @click="auth.logout()"
+            @click="handleLogout"
             variant="outline"
+            :loading="auth.logoutLoading"
+            :disabled="auth.logoutLoading"
             class="px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs"
           >
             Sair
@@ -127,7 +129,14 @@
             </div>
           </template>
 
-          <div class="py-4">
+          <div v-if="balanceLoading" class="py-4 space-y-5">
+            <AppSkeleton height="2.75rem" width="12rem" />
+            <div class="flex items-center justify-between">
+              <AppSkeleton height="0.75rem" width="5.5rem" />
+              <AppSkeleton height="0.75rem" width="7rem" />
+            </div>
+          </div>
+          <div v-else class="py-4">
             <div class="flex items-baseline gap-1.5">
               <span
                 class="text-brand-secondary/80 text-sm font-bold font-montserrat"
@@ -313,6 +322,8 @@
               <AppButton
                 @click="fetchTransactionHistory(1)"
                 variant="primary"
+                :loading="transactionsLoading"
+                :disabled="transactionsLoading"
                 class="!py-1.5 px-3 sm:px-4 text-[10px] sm:text-[11px] w-full xs:w-auto lg:ml-auto"
               >
                 Atualizar
@@ -325,7 +336,7 @@
           class="overflow-x-auto scrollbar-thin scrollbar-thumb-brand-border"
         >
           <table class="w-full text-left border-collapse min-w-[600px]">
-            <thead class="sticky top-0 z-10 bg-white">
+            <thead v-once class="sticky top-0 z-10 bg-white">
               <tr class="bg-brand-bg/50 border-b border-brand-border">
                 <th
                   class="py-4 px-4 sm:px-6 text-[10px] font-bold uppercase tracking-widest text-brand-muted whitespace-nowrap"
@@ -350,7 +361,29 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-brand-border">
-              <tr v-if="transactionHistory.length === 0">
+              <tr
+                v-for="index in transactionsLoading ? skeletonRows : []"
+                :key="`skeleton-${index}`"
+                class="animate-pulse"
+              >
+                <td class="py-4 px-4 sm:px-6 whitespace-nowrap">
+                  <AppSkeleton height="1.5rem" width="5.5rem" />
+                </td>
+                <td class="py-4 px-4 sm:px-6 whitespace-nowrap">
+                  <AppSkeleton height="1rem" width="8rem" />
+                </td>
+                <td class="py-4 px-4 sm:px-6">
+                  <div class="flex justify-end">
+                    <AppSkeleton height="1rem" width="6rem" />
+                  </div>
+                </td>
+                <td class="py-4 px-4 sm:px-6">
+                  <div class="flex justify-end">
+                    <AppSkeleton height="1rem" width="7rem" />
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="!transactionsLoading && transactionHistory.length === 0">
                 <td
                   colspan="4"
                   class="py-12 text-center text-sm text-brand-muted italic"
@@ -415,7 +448,7 @@
               <AppButton
                 variant="outline"
                 class="!py-1 px-2 sm:px-3 text-[10px]"
-                :disabled="currentPage === 1"
+                :disabled="transactionsLoading || currentPage === 1"
                 @click="fetchTransactionHistory(currentPage - 1)"
               >
                 <span class="hidden xs:inline">Anterior</span>
@@ -426,6 +459,7 @@
                   v-for="p in visiblePages"
                   :key="p"
                   @click="fetchTransactionHistory(p)"
+                  :disabled="transactionsLoading"
                   :class="
                     currentPage === p
                       ? 'bg-brand-primary text-white'
@@ -439,7 +473,7 @@
               <AppButton
                 variant="outline"
                 class="!py-1 px-2 sm:px-3 text-[10px]"
-                :disabled="currentPage >= totalPages"
+                :disabled="transactionsLoading || currentPage >= totalPages"
                 @click="fetchTransactionHistory(currentPage + 1)"
               >
                 <span class="hidden xs:inline">Próxima</span>
@@ -454,7 +488,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, shallowRef, shallowReactive, onMounted, computed, watch } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { createWalletTransfer, fetchWalletBalance, fetchWalletTransactions } from "../services/wallet-service";
 import { buildTransferIdempotencyKey } from "../services/idempotency";
@@ -462,24 +496,28 @@ import { formatMoneyForDisplay, normalizeMoneyInput } from "../services/money";
 import AppButton from "../components/AppButton.vue";
 import AppInput from "../components/AppInput.vue";
 import AppCard from "../components/AppCard.vue";
+import AppSkeleton from "../components/AppSkeleton.vue";
 import BaukLogo from "../components/BaukLogo.vue";
 import type { TransactionFilters, TransactionOrder, TransactionType, WalletTransaction } from "../types/wallet";
+import { toISODateString, toMoneyAmount, toPageNumber, toPageSize, toUsername, type ISODateString, type MoneyAmount } from "../types/value-objects";
 import { getFirstValidationMessage, transferFormSchema } from "../validation/forms";
 
 const auth = useAuthStore();
-const currentBalance = ref<string>("0.00");
+const currentBalance = ref<MoneyAmount>(toMoneyAmount("0.00"));
+const balanceLoading = ref(false);
 const showBalance = ref(true);
-const transactionHistory = ref<WalletTransaction[]>([]);
+const transactionHistory = shallowRef<WalletTransaction[]>([]);
+const transactionsLoading = ref(false);
 const totalItems = ref(0);
 const currentPage = ref(1);
 const itemsPerPage = 5;
 
-const transferRequestForm = reactive({ recipientUsername: "", transferAmount: 0 });
+const transferRequestForm = shallowReactive({ recipientUsername: "", transferAmount: 0 });
 const transferError = ref("");
 const transferSuccess = ref("");
 const transferLoading = ref(false);
 
-const transactionFilters = reactive<{
+const transactionFilters = shallowReactive<{
   startDate: string;
   endDate: string;
   type: '' | TransactionType;
@@ -503,6 +541,7 @@ watch(
 
 const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage));
 const formattedBalance = computed(() => formatMoneyForDisplay(currentBalance.value));
+const skeletonRows = Array.from({ length: itemsPerPage }, (_, index) => index);
 
 const visiblePages = computed(() => {
   const pages = [];
@@ -513,28 +552,38 @@ const visiblePages = computed(() => {
 });
 
 async function fetchBalance() {
-  const walletBalance = await fetchWalletBalance();
-  currentBalance.value = walletBalance.balance;
+  balanceLoading.value = true;
+  try {
+    const walletBalance = await fetchWalletBalance();
+    currentBalance.value = walletBalance.balance;
+  } finally {
+    balanceLoading.value = false;
+  }
 }
 
 async function fetchTransactionHistory(page = 1) {
   currentPage.value = page;
   const filters: TransactionFilters = {
-    page: currentPage.value,
-    limit: itemsPerPage,
+    page: toPageNumber(currentPage.value),
+    limit: toPageSize(itemsPerPage),
     order: transactionFilters.order,
   };
 
-  if (transactionFilters.startDate) filters.startDate = transactionFilters.startDate;
-  if (transactionFilters.endDate) filters.endDate = transactionFilters.endDate;
+  if (transactionFilters.startDate) filters.startDate = toISODateString(transactionFilters.startDate);
+  if (transactionFilters.endDate) filters.endDate = toISODateString(transactionFilters.endDate);
   if (transactionFilters.type) filters.type = transactionFilters.type;
 
+  // A lista vem da API e eh sempre substituida em bloco, entao proxy profundo
+  // em cada linha nao agrega valor para a tabela.
+  transactionsLoading.value = true;
   try {
     const transactionsPage = await fetchWalletTransactions(filters);
     transactionHistory.value = transactionsPage.data;
     totalItems.value = transactionsPage.meta.total;
   } catch (err) {
     console.error("Falha ao buscar transações:", err);
+  } finally {
+    transactionsLoading.value = false;
   }
 }
 
@@ -558,12 +607,12 @@ async function handleTransfer() {
   try {
     await createWalletTransfer({
       idempotencyKey: buildTransferIdempotencyKey({
-        senderUsername: auth.username ?? "",
-        recipientUsername: validation.data.recipientUsername,
+        senderUsername: auth.username ?? toUsername(""),
+        recipientUsername: toUsername(validation.data.recipientUsername),
         value: normalizedTransferValue,
         time: import.meta.env.IDEMPOTENCY_TIME_SECONDS,
       }),
-      username: validation.data.recipientUsername,
+      username: toUsername(validation.data.recipientUsername),
       value: normalizedTransferValue,
     });
     transferSuccess.value = `Sucesso! R$ ${formatMoneyForDisplay(validation.data.transferAmount)} enviados.`;
@@ -578,6 +627,10 @@ async function handleTransfer() {
   }
 }
 
+async function handleLogout() {
+  await auth.logout();
+}
+
 function isCashInTransaction(transaction: WalletTransaction): boolean {
   return transaction.type === "cash-in";
 }
@@ -586,11 +639,11 @@ function getRelatedAccountIdentifier(transaction: WalletTransaction): string {
   return isCashInTransaction(transaction) ? transaction.debitedUsername : transaction.creditedUsername;
 }
 
-function formatMoney(value: string | number): string {
+function formatMoney(value: MoneyAmount | number): string {
   return formatMoneyForDisplay(value);
 }
 
-function formatDate(date: string): string {
+function formatDate(date: ISODateString): string {
   const d = new Date(date);
   return (
     d.toLocaleDateString("pt-BR", {
@@ -604,7 +657,6 @@ function formatDate(date: string): string {
 }
 
 onMounted(async () => {
-  await fetchBalance();
-  await fetchTransactionHistory(1);
+  await Promise.all([fetchBalance(), fetchTransactionHistory(1)]);
 });
 </script>

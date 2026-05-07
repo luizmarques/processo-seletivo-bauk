@@ -56,6 +56,7 @@ import AppButton from '../components/AppButton.vue';
 import AppInput from '../components/AppInput.vue';
 import AppCard from '../components/AppCard.vue';
 import BaukLogo from '../components/BaukLogo.vue';
+import { toPassword, toUsername } from '../types/value-objects';
 import { getFirstValidationMessage, registerFormSchema } from '../validation/forms';
 
 const username = ref('');
@@ -81,7 +82,10 @@ async function handleRegister() {
   password.value = validation.data.password;
   loading.value = true;
   try {
-    await auth.register(username.value, password.value);
+    await auth.register({
+      username: toUsername(username.value),
+      password: toPassword(password.value),
+    });
     router.push('/login');
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Falha no cadastro';
