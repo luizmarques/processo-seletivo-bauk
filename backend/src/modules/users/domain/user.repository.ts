@@ -3,7 +3,6 @@ import { UserEntity } from '../../../infrastructure/database/typeorm/entities/us
 export interface UserRepository {
   findById(id: string): Promise<UserEntity | null>;
   findByUsername(username: string): Promise<UserEntity | null>;
-  createWithAccount(input: { username: string; password: string; initialBalance: string }): Promise<UserEntity>;
+  createWithAccount(input: { username: string; password: string }): Promise<UserEntity>;
   count(): Promise<number>;
 }
-

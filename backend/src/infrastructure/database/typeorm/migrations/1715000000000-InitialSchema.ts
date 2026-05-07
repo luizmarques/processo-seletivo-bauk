@@ -1,5 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { REQUIRED_INITIAL_BALANCE } from '../../../../shared/domain/value-objects/initial-balance';
+
+const INITIAL_BALANCE_DEFAULT = '100.0000';
 
 export class InitialSchema1715000000000 implements MigrationInterface {
   name = 'InitialSchema1715000000000';
@@ -9,7 +10,7 @@ export class InitialSchema1715000000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "accounts" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-        "balance" numeric(18,4) NOT NULL DEFAULT '${REQUIRED_INITIAL_BALANCE}',
+        "balance" numeric(18,4) NOT NULL DEFAULT '${INITIAL_BALANCE_DEFAULT}',
         CONSTRAINT "PK_accounts_id" PRIMARY KEY ("id")
       )
     `);

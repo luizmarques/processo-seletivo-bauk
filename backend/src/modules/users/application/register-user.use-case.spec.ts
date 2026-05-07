@@ -1,16 +1,15 @@
 import { ResourceConflictError } from '../../../shared/domain/errors/domain.errors';
-import { REQUIRED_INITIAL_BALANCE } from '../../../shared/domain/value-objects/initial-balance';
 import { RegisterUserUseCase } from './register-user.use-case';
 
 class FakeUserRepository {
   public usersByUsername = new Map<string, { id: string; username: string; password: string; accountId: string }>();
-  public createWithAccountCalls: Array<{ username: string; password: string; initialBalance: string }> = [];
+  public createWithAccountCalls: Array<{ username: string; password: string }> = [];
 
   async findByUsername(username: string) {
     return this.usersByUsername.get(username) ?? null;
   }
 
-  async createWithAccount(input: { username: string; password: string; initialBalance: string }) {
+  async createWithAccount(input: { username: string; password: string }) {
     this.createWithAccountCalls.push(input);
     return {
       id: 'user-created',
@@ -46,20 +45,31 @@ describe('RegisterUserUseCase', () => {
       {
         username: 'janedoe',
         password: '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiB0JzZMfjNV8iPBUFeCFGXFq8iDS.e',
-        initialBalance: REQUIRED_INITIAL_BALANCE,
       },
     ]);
   });
 
-  it('usa a regra fixa de saldo inicial mesmo se houver env divergente', async () => {
+  it('ignora qualquer env divergente ao preparar o cadastro', async () => {
+    const previousInitialBalance = process.env.INITIAL_BALANCE;
     process.env.INITIAL_BALANCE = '999.9999';
-    const userRepository = new FakeUserRepository();
-    const passwordHasher = new FakePasswordHasher();
-    const sut = new RegisterUserUseCase(userRepository as never, passwordHasher as never);
+    try {
+      const userRepository = new FakeUserRepository();
+      const passwordHasher = new FakePasswordHasher();
+      const sut = new RegisterUserUseCase(userRepository as never, passwordHasher as never);
 
-    await sut.execute({ username: 'johndoe', password: 'Senha123' });
+      await sut.execute({ username: 'johndoe', password: 'Senha123' });
 
-    expect(userRepository.createWithAccountCalls[0]?.initialBalance).toBe(REQUIRED_INITIAL_BALANCE);
+      expect(userRepository.createWithAccountCalls[0]).toEqual({
+        username: 'johndoe',
+        password: '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiB0JzZMfjNV8iPBUFeCFGXFq8iDS.e',
+      });
+    } finally {
+      if (previousInitialBalance === undefined) {
+        delete process.env.INITIAL_BALANCE;
+      } else {
+        process.env.INITIAL_BALANCE = previousInitialBalance;
+      }
+    }
   });
 
   it('impede username duplicado sem tentar hash ou criacao', async () => {

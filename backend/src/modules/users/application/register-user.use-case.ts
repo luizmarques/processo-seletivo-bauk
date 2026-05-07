@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { USER_REPOSITORY, PASSWORD_HASHER } from '../../../shared/constants/injection-tokens';
 import { ResourceConflictError } from '../../../shared/domain/errors/domain.errors';
-import { InitialBalance } from '../../../shared/domain/value-objects/initial-balance';
 import { PlainPassword } from '../../../shared/domain/value-objects/plain-password';
 import { Username } from '../../../shared/domain/value-objects/username';
 import type { PasswordHasher } from '../../../shared/security/bcrypt-password.service';
@@ -26,7 +25,6 @@ export class RegisterUserUseCase {
     const user = await this.userRepository.createWithAccount({
       username: username.toString(),
       password: hashedPassword.toString(),
-      initialBalance: InitialBalance.create().toString(),
     });
 
     return { id: user.id, username: user.username };

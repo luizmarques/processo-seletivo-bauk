@@ -1,12 +1,13 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { REQUIRED_INITIAL_BALANCE } from '../../../../shared/domain/value-objects/initial-balance';
+
+const INITIAL_BALANCE_DEFAULT = '100.0000';
 
 export class ExpandMoneyScale1715000000001 implements MigrationInterface {
   name = 'ExpandMoneyScale1715000000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "balance" TYPE numeric(18,4)`);
-    await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "balance" SET DEFAULT '${REQUIRED_INITIAL_BALANCE}'`);
+    await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "balance" SET DEFAULT '${INITIAL_BALANCE_DEFAULT}'`);
     await queryRunner.query(`ALTER TABLE "transactions" ALTER COLUMN "value" TYPE numeric(18,4)`);
   }
 
