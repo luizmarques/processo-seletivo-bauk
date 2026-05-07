@@ -220,7 +220,8 @@ O seed atual:
 - também pode ser executado manualmente com `npm run seed`
 - cria usuários apenas se a base estiver vazia
 - cria 10 usuários com senha `Senha123`
-- cria saldo inicial de `100.0000` para cada conta
+- cria saldo inicial fixo de `100.0000` para cada conta
+- segue a mesma regra obrigatória de domínio usada no fluxo real de cadastro
 - gera 20 transações entre esses usuários
 
 ## Logout

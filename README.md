@@ -44,7 +44,9 @@ docker compose up --build
 Regra de negócio implementada:
 
 - todo novo usuário é criado com saldo inicial fixo de `100.0000`
-- essa regra é tratada no domínio e não depende de variável de ambiente
+- essa regra é tratada como política obrigatória do domínio no fluxo de criação de conta
+- o cadastro não aceita nem propaga `initialBalance` como entrada
+- essa regra não depende de variável de ambiente
 
 ## Como realizar a transferência
 
@@ -94,7 +96,7 @@ Importante: o endpoint `/auth/logout` apenas retorna uma mensagem informativa. O
 
 Todos usam a senha `Senha123`:
 
-Todos também começam com saldo inicial de `100.0000`.
+Todos também começam com saldo inicial fixo de `100.0000`, aplicado pela mesma regra obrigatória usada no cadastro.
 
 - `janedoe`
 - `johndoe`
