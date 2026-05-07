@@ -9,10 +9,11 @@ Aplicação fullstack para transferências internas entre usuários, composta po
 - `PostgreSQL`
 - `Redis`
 - autenticação JWT
-- idempotência obrigatória por `Idempotency-Key`
-- chave de idempotência no formato `usuario:destinatario:valor:time`
+- proteção de repetição para `POST /wallet/transfer` com `Idempotency-Key`
 
-## Subida com Docker
+Com `docker compose`, o backend executa migrations e seed automaticamente antes de iniciar a API.
+
+## Como subir a aplicação
 
 ```bash
 cp backend/.env.example backend/.env
@@ -20,11 +21,69 @@ cp frontend/.env.example frontend/.env
 docker compose up --build
 ```
 
-## Endpoints e acessos
+## Como acessar a aplicação
 
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:3000`
 - swagger: `http://localhost:3000/api/docs`
+
+## Como realizar o login
+
+1. Acesse `http://localhost:5173/login`.
+2. Informe `username` e `password`.
+3. Ao autenticar, o frontend salva `token` e `username` no `localStorage`.
+4. O usuário é redirecionado para `/dashboard`.
+
+## Como realizar o cadastro
+
+1. Acesse `http://localhost:5173/register`.
+2. Informe um `username` com pelo menos 3 caracteres.
+3. Informe uma senha com pelo menos 8 caracteres, contendo uma letra maiúscula e um número.
+4. Após sucesso, o frontend redireciona para a tela de login.
+
+## Como realizar a transferência
+
+1. Entre no dashboard autenticado.
+2. Preencha o `username` do destinatário.
+3. Informe o valor.
+4. O frontend envia `POST /wallet/transfer` com `Authorization: Bearer <token>` e `Idempotency-Key`.
+
+Observações reais do código:
+
+- o backend aceita até 4 casas decimais;
+- o frontend valida e envia no máximo 2 casas decimais;
+- o backend bloqueia transferências para o próprio usuário;
+- a proteção de idempotência usa Redis e impede repetir a mesma chave dentro do TTL configurado.
+
+## Como visualizar as transações
+
+1. Entre no dashboard.
+2. A tabela de histórico é carregada automaticamente.
+3. O frontend consulta `GET /wallet/transactions` com paginação.
+4. A interface mostra 5 registros por página.
+
+## Como filtrar as transações
+
+Os filtros disponíveis na interface são:
+
+- data inicial
+- data final
+- tipo: `cash-in` ou `cash-out`
+- ordem: `DESC` ou `ASC`
+
+A API também aceita:
+
+- `page`
+- `limit`
+
+## Como realizar o log-out
+
+1. Clique em `Sair` no dashboard.
+2. O frontend chama `POST /auth/logout`.
+3. Em seguida, remove `token` e `username` do `localStorage`.
+4. O usuário volta para `/login`.
+
+Importante: o endpoint `/auth/logout` apenas retorna uma mensagem informativa. O JWT não é invalidado no servidor.
 
 ## Usuários seed
 
@@ -41,13 +100,6 @@ Todos usam a senha `Senha123`:
 - `george_costanza`
 - `hannah_montana`
 
-## Fluxo básico
-
-1. fazer login
-2. copiar o JWT retornado
-3. chamar endpoints protegidos com `Authorization: Bearer <token>`
-4. para transferências, sempre enviar `Idempotency-Key`
-
 ## Exemplo de login manual
 
 ```bash
@@ -62,31 +114,25 @@ curl -X POST http://localhost:3000/auth/login \
 curl -X POST http://localhost:3000/wallet/transfer \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <JWT>' \
-  -H 'Idempotency-Key: janedoe:johndoe:10.0000:202605061200' \
+  -H 'Idempotency-Key: janedoe:johndoe:10.0000:10' \
   -d '{"username":"johndoe","value":"10.0000"}'
 ```
-
-No frontend, o sufixo `time` pode ser definido por `VITE_IDEMPOTENCY_TIME`. Se a variável não for informada, a aplicação mantém o bucket temporal anterior usando `VITE_IDEMPOTENCY_TIME_WINDOW_SECONDS`.
-
-## Consultas de histórico
-
-Filtros disponíveis em `GET /wallet/transactions`:
-
-- `page`
-- `limit`
-- `type`
-- `order`
-- `startDate`
-- `endDate`
 
 ## Desenvolvimento local
 
 ### Backend
 
+Pré-requisitos:
+
+- PostgreSQL disponível e configurado via `.env`
+- Redis disponível e configurado via `.env`
+
 ```bash
 cd backend
 cp .env.example .env
 npm install
+npm run migration:run
+npm run seed
 npm run start:dev
 ```
 
@@ -104,5 +150,4 @@ npm run dev
 ```bash
 cd backend
 npm test
-npm run lint
 ```
