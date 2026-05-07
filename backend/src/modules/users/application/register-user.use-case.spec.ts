@@ -1,4 +1,5 @@
 import { ResourceConflictError } from '../../../shared/domain/errors/domain.errors';
+import { REQUIRED_INITIAL_BALANCE } from '../../../shared/domain/value-objects/initial-balance';
 import { RegisterUserUseCase } from './register-user.use-case';
 
 class FakeUserRepository {
@@ -33,7 +34,6 @@ class FakePasswordHasher {
 
 describe('RegisterUserUseCase', () => {
   it('cria usuario com conta inicial e senha criptografada', async () => {
-    process.env.INITIAL_BALANCE = '100.0000';
     const userRepository = new FakeUserRepository();
     const passwordHasher = new FakePasswordHasher();
     const sut = new RegisterUserUseCase(userRepository as never, passwordHasher as never);
@@ -46,20 +46,20 @@ describe('RegisterUserUseCase', () => {
       {
         username: 'janedoe',
         password: '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiB0JzZMfjNV8iPBUFeCFGXFq8iDS.e',
-        initialBalance: '100.0000',
+        initialBalance: REQUIRED_INITIAL_BALANCE,
       },
     ]);
   });
 
-  it('usa saldo inicial padrao quando a variavel nao existe', async () => {
-    delete process.env.INITIAL_BALANCE;
+  it('usa a regra fixa de saldo inicial mesmo se houver env divergente', async () => {
+    process.env.INITIAL_BALANCE = '999.9999';
     const userRepository = new FakeUserRepository();
     const passwordHasher = new FakePasswordHasher();
     const sut = new RegisterUserUseCase(userRepository as never, passwordHasher as never);
 
     await sut.execute({ username: 'johndoe', password: 'Senha123' });
 
-    expect(userRepository.createWithAccountCalls[0]?.initialBalance).toBe('100.0000');
+    expect(userRepository.createWithAccountCalls[0]?.initialBalance).toBe(REQUIRED_INITIAL_BALANCE);
   });
 
   it('impede username duplicado sem tentar hash ou criacao', async () => {

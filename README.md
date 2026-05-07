@@ -41,6 +41,11 @@ docker compose up --build
 3. Informe uma senha com pelo menos 8 caracteres, contendo uma letra maiúscula e um número.
 4. Após sucesso, o frontend redireciona para a tela de login.
 
+Regra de negócio implementada:
+
+- todo novo usuário é criado com saldo inicial fixo de `100.0000`
+- essa regra é tratada no domínio e não depende de variável de ambiente
+
 ## Como realizar a transferência
 
 1. Entre no dashboard autenticado.
@@ -88,6 +93,8 @@ Importante: o endpoint `/auth/logout` apenas retorna uma mensagem informativa. O
 ## Usuários seed
 
 Todos usam a senha `Senha123`:
+
+Todos também começam com saldo inicial de `100.0000`.
 
 - `janedoe`
 - `johndoe`

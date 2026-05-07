@@ -8,6 +8,7 @@ import dataSource from '../typeorm/data-source';
 import { AccountEntity } from '../typeorm/entities/account.entity';
 import { TransactionEntity } from '../typeorm/entities/transaction.entity';
 import { UserEntity } from '../typeorm/entities/user.entity';
+import { REQUIRED_INITIAL_BALANCE } from '../../../shared/domain/value-objects/initial-balance';
 
 const usernames = [
   'janedoe',
@@ -35,7 +36,7 @@ async function seed(appDataSource: DataSource): Promise<void> {
   const users: UserEntity[] = [];
 
   for (const username of usernames) {
-    const account = await accountRepo.save(accountRepo.create({ balance: '100.0000' }));
+    const account = await accountRepo.save(accountRepo.create({ balance: REQUIRED_INITIAL_BALANCE }));
     const user = await userRepo.save(
       userRepo.create({
         username,
