@@ -19,15 +19,6 @@ class FakeTransferUserRepository {
   }
 }
 
-class FakeTransferAccountRepository {
-  public accountsById = new Map<string, { id: string; balance: string }>();
-
-  async findById(id: string) {
-    const account = this.accountsById.get(id);
-    return account ? { ...account } : null;
-  }
-}
-
 class FakeTransactionRepository {
   public executeTransferCalls: Array<{
     senderAccountId: string;

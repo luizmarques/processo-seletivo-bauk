@@ -65,7 +65,7 @@ O frontend usa `Vue 3`, `TypeScript`, `Pinia`, `Vue Router`, `Axios`, `Zod` e `T
 O bootstrap está em `backend/src/main.ts`. Ele:
 
 - cria a aplicação Nest
-- habilita `CORS` sem lista explícita de origens
+- habilita `CORS` para lista origen explícita
 - aplica validação global com `ValidationPipe`
 - registra `DomainExceptionFilter`
 - expõe Swagger em `/api/docs`

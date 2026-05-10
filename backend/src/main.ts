@@ -7,8 +7,14 @@ import { createRequestValidationPipe } from './shared/http/pipes/request-validat
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  const allowedOrigin = process.env.CORS ?? 'http://localhost:5173';
 
-  app.enableCors();
+  app.enableCors({
+    origin: allowedOrigin,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type, Accept, Authorization, Idempotency-Key',
+    credentials: true,
+  });
   app.useGlobalPipes(createRequestValidationPipe());
   app.useGlobalFilters(new DomainExceptionFilter());
 
