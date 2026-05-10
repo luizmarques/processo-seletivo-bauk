@@ -109,24 +109,6 @@ Todos também começam com saldo inicial fixo de `100.0000`, aplicado pela mesma
 - `george_costanza`
 - `hannah_montana`
 
-## Exemplo de login manual
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"janedoe","password":"Senha123"}'
-```
-
-## Exemplo de transferência manual
-
-```bash
-curl -X POST http://localhost:3000/wallet/transfer \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer <JWT>' \
-  -H 'Idempotency-Key: janedoe:johndoe:10.0000:10' \
-  -d '{"username":"johndoe","value":"10.0000"}'
-```
-
 ## Desenvolvimento local
 
 ### Backend
