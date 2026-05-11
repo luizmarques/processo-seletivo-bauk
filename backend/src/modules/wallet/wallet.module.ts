@@ -25,7 +25,7 @@ import { WalletController } from "./wallet.controller";
     GetBalanceUseCase,
     CreateTransferUseCase,
     ListTransactionsUseCase,
-    // Required so Nest can instantiate it with DI (RedisService) in the real app.
+    // Necessário para o Nest instanciar via DI (RedisService) na aplicação real.
     IdempotencyInterceptor,
     { provide: ACCOUNT_REPOSITORY, useClass: TypeOrmAccountRepository },
     { provide: TRANSACTION_REPOSITORY, useClass: TypeOrmTransactionRepository },

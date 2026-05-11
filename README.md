@@ -138,7 +138,16 @@ npm run dev
 
 ## Testes
 
+### Backend
+
 ```bash
 cd backend
+npm test
+```
+
+### Frontend
+
+```bash
+cd frontend
 npm test
 ```

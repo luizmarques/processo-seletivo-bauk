@@ -573,8 +573,8 @@ async function fetchTransactionHistory(page = 1) {
   if (transactionFilters.endDate) filters.endDate = toISODateString(transactionFilters.endDate);
   if (transactionFilters.type) filters.type = transactionFilters.type;
 
-  // A lista vem da API e eh sempre substituida em bloco, entao proxy profundo
-  // em cada linha nao agrega valor para a tabela.
+  // A lista vem da API e é sempre substituída em bloco, então proxy profundo
+  // em cada linha não agrega valor para a tabela.
   transactionsLoading.value = true;
   try {
     const transactionsPage = await fetchWalletTransactions(filters);

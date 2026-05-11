@@ -108,11 +108,14 @@ O código usa Repository Pattern com interfaces de domínio e implementações T
 
 ### Regras de domínio
 
-- `Username` normaliza para minúsculas e exige no mínimo 3 caracteres
-- `PlainPassword` exige ao menos 8 caracteres, uma maiúscula e um número
+- `Username` normaliza para minúsculas, remove espaços nas bordas e exige no mínimo 3 caracteres
+- `PlainPassword` exige ao menos 8 caracteres, uma letra maiúscula e um número
 - `TransferAmount` valida valor maior que zero e com no máximo 4 casas decimais
-- `Balance` valida saldo não negativo
-- `UuidValueObject` valida IDs UUID
+- `Money` representa valores monetários com exatamente 4 casas decimais
+- `Balance` valida saldo não negativo; expõe `debit`, `credit` e `ensureCanDebit`
+- `PasswordHash` valida hash bcrypt nos prefixos `$2a$`, `$2b$` e `$2y$`
+- `UuidValueObject` valida IDs UUID; subclasses `AccountId` e `UserId` adicionam o rótulo ao erro
+- `IdempotencyKey` normaliza para minúsculas e remove espaços nas bordas
 - `DomainError` e suas variações são mapeadas pelo `DomainExceptionFilter`
 
 ## Frontend
@@ -234,10 +237,40 @@ O endpoint `POST /auth/logout` existe, mas o comportamento real é apenas:
 
 O encerramento da sessão acontece de fato no frontend, com remoção de `token` e `username` do `localStorage`.
 
-## Testes e validação executados
+## Testes e validação
 
-Validação observada no repositório:
+### Backend
 
-- `npm test` no backend passou com `99` testes
-- cobertura reportada acima de `99%` em statements e lines
-- `npm run build` no frontend concluiu com sucesso
+O backend usa `Jest` com cobertura coletada sobre casos de uso, value objects e interceptors.
+
+Arquivos de spec presentes:
+
+- casos de uso: `login`, `register-user`, `get-balance`, `create-transfer`, `list-transactions`
+- value objects: `Username`, `Balance`, `Money`, `TransferAmount`, `PlainPassword`, `PasswordHash`, `UuidValueObject` (cobre `AccountId` e `UserId`), `IdempotencyKey`
+- repositórios TypeORM: `TypeOrmAccountRepository`, `TypeOrmTransactionRepository`, `TypeOrmUserRepository`
+- interceptor: `IdempotencyInterceptor`
+- testes HTTP de controladores via `createHttpTestApp()` (Fastify real, repositórios e Redis fakes)
+
+Execute com:
+
+```bash
+cd backend
+npm test
+```
+
+### Frontend
+
+O frontend usa `Vitest` com ambiente `jsdom`.
+
+Arquivos de spec presentes:
+
+- `src/services/money.spec.ts` — `normalizeMoneyInput` e `formatMoneyForDisplay` (arredondamento bancário)
+- `src/validation/forms.spec.ts` — `loginFormSchema`, `registerFormSchema`, `transferFormSchema` e `getFirstValidationMessage`
+- `src/services/idempotency.spec.ts` — `buildTransferIdempotencyKey`
+
+Execute com:
+
+```bash
+cd frontend
+npm test
+```

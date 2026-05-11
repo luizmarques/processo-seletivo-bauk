@@ -8,7 +8,7 @@ function resolveApiUrl(): ApiUrl {
     import.meta.env.API_URL?.trim() ??
     "";
 
-  // Relative fallback keeps the frontend operable even when env exposure is misconfigured.
+  // Fallback relativo mantém o frontend operável mesmo quando a variável de ambiente não está exposta.
   return toApiUrl(apiUrl.length > 0 ? apiUrl : "http://localhost:3000");
 }
 
