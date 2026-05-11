@@ -20,7 +20,8 @@ import { JwtAuthGuard } from "../shared/auth/jwt-auth.guard";
 import { DomainExceptionFilter } from "../shared/http/filters/domain-exception.filter";
 import { IdempotencyInterceptor } from "../shared/http/interceptors/idempotency.interceptor";
 import { createRequestValidationPipe } from "../shared/http/pipes/request-validation-options";
-import { RedisService } from "../shared/redis/redis.service";
+import { IDEMPOTENCY_STORE } from "../shared/constants/injection-tokens";
+import type { IdempotencyStore } from "../shared/redis/idempotency-store";
 
 export class FakeRegisterUserUseCase {
   public result = { id: "user-1", username: "janedoe" };
@@ -160,18 +161,22 @@ export class FakeListTransactionsUseCase {
   }
 }
 
-export class FakeRedisService {
+export class FakeRedisService implements IdempotencyStore {
   public store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
     return this.store.get(key) ?? null;
   }
 
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, _ttlSeconds: number): Promise<void> {
     this.store.set(key, value);
   }
 
-  async setIfNotExists(key: string, value: string): Promise<boolean> {
+  async setIfNotExists(
+    key: string,
+    value: string,
+    _ttlSeconds: number,
+  ): Promise<boolean> {
     if (this.store.has(key)) {
       return false;
     }
@@ -235,7 +240,7 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
       { provide: CreateTransferUseCase, useValue: createTransferUseCase },
       { provide: GetBalanceUseCase, useValue: getBalanceUseCase },
       { provide: ListTransactionsUseCase, useValue: listTransactionsUseCase },
-      { provide: RedisService, useValue: redisService },
+      { provide: IDEMPOTENCY_STORE, useValue: redisService },
     ],
   })
     .overrideGuard(JwtAuthGuard)

@@ -1,4 +1,5 @@
-import { TransactionEntity } from "../../../infrastructure/database/typeorm/entities/transaction.entity";
+import type { PaginatedTransactionRecords } from "./transaction-record";
+export type { PaginatedTransactionRecords };
 
 export interface TransactionFilters {
   accountId: string;
@@ -10,19 +11,12 @@ export interface TransactionFilters {
   order?: "ASC" | "DESC";
 }
 
-export interface PaginatedTransactions {
-  data: TransactionEntity[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
 export interface TransactionRepository {
   executeTransfer(input: {
     senderAccountId: string;
     recipientAccountId: string;
     value: string;
-  }): Promise<TransactionEntity>;
-  listByAccount(filters: TransactionFilters): Promise<PaginatedTransactions>;
+  }): Promise<{ id: string; value: string }>;
+  listByAccount(filters: TransactionFilters): Promise<PaginatedTransactionRecords>;
   count(): Promise<number>;
 }

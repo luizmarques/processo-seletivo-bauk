@@ -1,5 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import Redis from "ioredis";
+import { IDEMPOTENCY_STORE } from "../constants/injection-tokens";
 import { RedisService } from "./redis.service";
 
 @Global()
@@ -14,7 +15,8 @@ import { RedisService } from "./redis.service";
         }),
     },
     RedisService,
+    { provide: IDEMPOTENCY_STORE, useExisting: RedisService },
   ],
-  exports: [Redis, RedisService],
+  exports: [Redis, RedisService, IDEMPOTENCY_STORE],
 })
 export class RedisModule {}

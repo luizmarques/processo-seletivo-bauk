@@ -1,11 +1,11 @@
-import { UserEntity } from "../../../infrastructure/database/typeorm/entities/user.entity";
+import type { User } from "./user";
 
 export interface UserRepository {
-  findById(id: string): Promise<UserEntity | null>;
-  findByUsername(username: string): Promise<UserEntity | null>;
+  findById(id: string): Promise<User | null>;
+  findByUsername(username: string): Promise<User | null>;
   createWithAccount(input: {
     username: string;
     password: string;
-  }): Promise<UserEntity>;
+  }): Promise<User>;
   count(): Promise<number>;
 }

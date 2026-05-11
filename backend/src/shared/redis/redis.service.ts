@@ -1,8 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import Redis from "ioredis";
+import type { IdempotencyStore } from "./idempotency-store";
 
 @Injectable()
-export class RedisService {
+export class RedisService implements IdempotencyStore {
   constructor(@Inject(Redis) private readonly redis: Redis) {}
 
   async get(key: string): Promise<string | null> {

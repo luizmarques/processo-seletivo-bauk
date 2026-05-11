@@ -1,17 +1,10 @@
+import { TransactionRecord } from "../domain/transaction-record";
 import { ListTransactionsUseCase } from "./list-transactions.use-case";
 
 class FakeTransactionRepository {
   public lastFilters: Record<string, unknown> | null = null;
   public response = {
-    data: [] as Array<{
-      id: string;
-      debitedAccountId: string;
-      debitedAccount: { user: { username: string } };
-      creditedAccountId: string;
-      creditedAccount: { user: { username: string } };
-      value: string;
-      createdAt: Date;
-    }>,
+    data: [] as TransactionRecord[],
     total: 0,
     page: 1,
     limit: 10,
@@ -34,24 +27,24 @@ describe("ListTransactionsUseCase", () => {
     const repository = new FakeTransactionRepository();
     repository.response = {
       data: [
-        {
-          id: transactionOneId,
-          debitedAccountId: accountId,
-          debitedAccount: { user: { username: "janedoe" } },
+        new TransactionRecord(
+          transactionOneId,
+          accountId,
+          "janedoe",
           creditedAccountId,
-          creditedAccount: { user: { username: "johndoe" } },
-          value: "10.9876",
-          createdAt: new Date("2026-05-06T10:00:00.000Z"),
-        },
-        {
-          id: transactionTwoId,
-          debitedAccountId: otherAccountId,
-          debitedAccount: { user: { username: "alice_smith" } },
-          creditedAccountId: accountId,
-          creditedAccount: { user: { username: "janedoe" } },
-          value: "8.3450",
-          createdAt: new Date("2026-05-06T11:00:00.000Z"),
-        },
+          "johndoe",
+          "10.9876",
+          new Date("2026-05-06T10:00:00.000Z"),
+        ),
+        new TransactionRecord(
+          transactionTwoId,
+          otherAccountId,
+          "alice_smith",
+          accountId,
+          "janedoe",
+          "8.3450",
+          new Date("2026-05-06T11:00:00.000Z"),
+        ),
       ],
       total: 2,
       page: 2,

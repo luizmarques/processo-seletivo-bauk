@@ -1,6 +1,5 @@
-import { AccountEntity } from "../../../infrastructure/database/typeorm/entities/account.entity";
+import type { Account } from "./account";
 
 export interface AccountRepository {
-  findById(id: string): Promise<AccountEntity | null>;
-  save(account: AccountEntity): Promise<AccountEntity>;
+  findById(id: string): Promise<Account | null>;
 }

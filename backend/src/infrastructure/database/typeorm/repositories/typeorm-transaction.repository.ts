@@ -1,13 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
 import { Brackets, EntityManager, Repository } from "typeorm";
+import { TransactionRecord } from "../../../../modules/wallet/domain/transaction-record";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
 import { Balance } from "../../../../shared/domain/value-objects/balance";
 import { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
 import { AccountEntity } from "../entities/account.entity";
 import { TransactionEntity } from "../entities/transaction.entity";
 import type {
-  PaginatedTransactions,
+  PaginatedTransactionRecords,
   TransactionFilters,
   TransactionRepository,
 } from "../../../../modules/wallet/domain/transaction.repository";
@@ -24,7 +25,7 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
     senderAccountId: string;
     recipientAccountId: string;
     value: string;
-  }): Promise<TransactionEntity> {
+  }): Promise<{ id: string; value: string }> {
     return this.entityManager.transaction(async (manager) => {
       const lockedAccounts = await manager
         .createQueryBuilder(AccountEntity, "account")
@@ -60,13 +61,14 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
         creditedAccountId: input.recipientAccountId,
         value: input.value,
       });
-      return manager.save(transaction);
+      const saved = await manager.save(transaction);
+      return { id: saved.id, value: saved.value };
     });
   }
 
   async listByAccount(
     filters: TransactionFilters,
-  ): Promise<PaginatedTransactions> {
+  ): Promise<PaginatedTransactionRecords> {
     const query = this.repository
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.debitedAccount", "debitedAccount")
@@ -107,7 +109,19 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
     query.orderBy("transaction.createdAt", filters.order ?? "DESC");
     query.skip((filters.page - 1) * filters.limit).take(filters.limit);
 
-    const [data, total] = await query.getManyAndCount();
+    const [entities, total] = await query.getManyAndCount();
+    const data = entities.map(
+      (t) =>
+        new TransactionRecord(
+          t.id,
+          t.debitedAccountId,
+          t.debitedAccount.user.username,
+          t.creditedAccountId,
+          t.creditedAccount.user.username,
+          t.value,
+          t.createdAt,
+        ),
+    );
     return { data, total, page: filters.page, limit: filters.limit };
   }
 

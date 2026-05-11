@@ -2,6 +2,8 @@ import {
   ResourceNotFoundError,
   ValidationDomainError,
 } from "../../../shared/domain/errors/domain.errors";
+import { Account } from "../domain/account";
+import { User } from "../../users/domain/user";
 import { CreateTransferUseCase } from "./create-transfer.use-case";
 
 const senderUserId = "11111111-1111-4111-8111-111111111111";
@@ -10,14 +12,8 @@ const senderAccountId = "33333333-3333-4333-8333-333333333333";
 const recipientAccountId = "44444444-4444-4444-8444-444444444444";
 
 class FakeTransferUserRepository {
-  public usersById = new Map<
-    string,
-    { id: string; username: string; accountId: string }
-  >();
-  public usersByUsername = new Map<
-    string,
-    { id: string; username: string; accountId: string }
-  >();
+  public usersById = new Map<string, User>();
+  public usersByUsername = new Map<string, User>();
 
   async findById(id: string) {
     return this.usersById.get(id) ?? null;
@@ -25,6 +21,14 @@ class FakeTransferUserRepository {
 
   async findByUsername(username: string) {
     return this.usersByUsername.get(username) ?? null;
+  }
+}
+
+class FakeAccountRepository {
+  public accountsById = new Map<string, Account>();
+
+  async findById(id: string) {
+    return this.accountsById.get(id) ?? null;
   }
 }
 
@@ -54,24 +58,28 @@ class FakeTransactionRepository {
 describe("CreateTransferUseCase", () => {
   function createSut() {
     const userRepository = new FakeTransferUserRepository();
+    const accountRepository = new FakeAccountRepository();
     const transactionRepository = new FakeTransactionRepository();
 
-    userRepository.usersById.set(senderUserId, {
-      id: senderUserId,
-      username: "janedoe",
-      accountId: senderAccountId,
-    });
-    userRepository.usersByUsername.set("johndoe", {
-      id: recipientUserId,
-      username: "johndoe",
-      accountId: recipientAccountId,
-    });
+    userRepository.usersById.set(
+      senderUserId,
+      new User(senderUserId, "janedoe", senderAccountId, ""),
+    );
+    userRepository.usersByUsername.set(
+      "johndoe",
+      new User(recipientUserId, "johndoe", recipientAccountId, ""),
+    );
+    accountRepository.accountsById.set(
+      senderAccountId,
+      new Account(senderAccountId, "100.0000"),
+    );
     const sut = new CreateTransferUseCase(
       userRepository as never,
+      accountRepository as never,
       transactionRepository as never,
     );
 
-    return { sut, userRepository, transactionRepository };
+    return { sut, userRepository, accountRepository, transactionRepository };
   }
 
   it("transfere saldo em quatro casas e retorna valor arredondado ao usuario", async () => {
@@ -112,11 +120,10 @@ describe("CreateTransferUseCase", () => {
 
   it("impede auto transferencia", async () => {
     const { sut, userRepository, transactionRepository } = createSut();
-    userRepository.usersByUsername.set("janedoe", {
-      id: senderUserId,
-      username: "janedoe",
-      accountId: senderAccountId,
-    });
+    userRepository.usersByUsername.set(
+      "janedoe",
+      new User(senderUserId, "janedoe", senderAccountId, ""),
+    );
 
     let error: unknown;
     try {
@@ -135,9 +142,10 @@ describe("CreateTransferUseCase", () => {
   });
 
   it("impede transferencia sem saldo", async () => {
-    const { sut, transactionRepository } = createSut();
-    transactionRepository.error = new ValidationDomainError(
-      "Saldo insuficiente para a transferência.",
+    const { sut, accountRepository, transactionRepository } = createSut();
+    accountRepository.accountsById.set(
+      senderAccountId,
+      new Account(senderAccountId, "5.0000"),
     );
 
     let error: unknown;
@@ -197,10 +205,8 @@ describe("CreateTransferUseCase", () => {
   });
 
   it("falha quando a conta remetente nao existe", async () => {
-    const { sut, transactionRepository } = createSut();
-    transactionRepository.error = new ResourceNotFoundError(
-      "Conta não encontrada.",
-    );
+    const { sut, accountRepository, transactionRepository } = createSut();
+    accountRepository.accountsById.clear();
 
     let error: unknown;
     try {

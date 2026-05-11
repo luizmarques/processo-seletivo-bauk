@@ -3,13 +3,15 @@ import {
   CallHandler,
   ConflictException,
   ExecutionContext,
+  Inject,
   Injectable,
   NestInterceptor,
 } from "@nestjs/common";
 import { Observable, from } from "rxjs";
 import { map, mergeMap } from "rxjs/operators";
+import { IDEMPOTENCY_STORE } from "../../constants/injection-tokens";
+import type { IdempotencyStore } from "../../redis/idempotency-store";
 import { IdempotencyKey } from "../idempotency-key";
-import { RedisService } from "../../redis/redis.service";
 
 const IDEMPOTENCY_LOCK_MESSAGE =
   "Esta transação acabou de ser realizada e, por segurança, não pode ser enviada novamente agora.";
@@ -19,7 +21,9 @@ const IDEMPOTENCY_HEADER = "idempotency-key";
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    @Inject(IDEMPOTENCY_STORE) private readonly store: IdempotencyStore,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
@@ -34,25 +38,18 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const ttl =
       Number.isFinite(configuredTtl) && configuredTtl > 0 ? configuredTtl : 5;
 
-    return from(this.redisService.get(cacheKey)).pipe(
+    return from(this.store.get(cacheKey)).pipe(
       mergeMap((cachedResponse) => {
         if (cachedResponse) {
           throw new ConflictException(IDEMPOTENCY_LOCK_MESSAGE);
         }
 
         return from(
-          this.redisService.setIfNotExists(cacheKey, "processing", ttl),
+          this.store.setIfNotExists(cacheKey, "processing", ttl),
         ).pipe(
           mergeMap((locked) => {
             if (!locked) {
-              return from(this.redisService.get(cacheKey)).pipe(
-                mergeMap((currentValue) => {
-                  if (currentValue) {
-                    throw new ConflictException(IDEMPOTENCY_LOCK_MESSAGE);
-                  }
-                  throw new ConflictException(IDEMPOTENCY_LOCK_MESSAGE);
-                }),
-              );
+              throw new ConflictException(IDEMPOTENCY_LOCK_MESSAGE);
             }
 
             return next
@@ -60,11 +57,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
               .pipe(
                 mergeMap((response) =>
                   from(
-                    this.redisService.set(
-                      cacheKey,
-                      JSON.stringify(response),
-                      ttl,
-                    ),
+                    this.store.set(cacheKey, JSON.stringify(response), ttl),
                   ).pipe(map(() => response)),
                 ),
               );

@@ -2,8 +2,6 @@ import { Inject, Injectable } from "@nestjs/common";
 import { TRANSACTION_REPOSITORY } from "../../../shared/constants/injection-tokens";
 import { AccountId } from "../../../shared/domain/value-objects/account-id";
 import { formatMoneyForDisplay } from "../../../shared/domain/value-objects/money-format";
-import { TransactionId } from "../../../shared/domain/value-objects/transaction-id";
-import { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import type { TransactionRepository } from "../domain/transaction.repository";
 
 @Injectable()
@@ -40,18 +38,16 @@ export class ListTransactionsUseCase {
       accountId: accountId.toString(),
     });
     return {
-      data: result.data.map((transaction) => ({
-        id: new TransactionId(transaction.id).toString(),
-        debitedAccountId: transaction.debitedAccountId,
-        debitedUsername: transaction.debitedAccount.user.username,
-        creditedAccountId: transaction.creditedAccountId,
-        creditedUsername: transaction.creditedAccount.user.username,
-        value: formatMoneyForDisplay(
-          new TransferAmount(transaction.value).toString(),
-        ),
-        createdAt: transaction.createdAt,
+      data: result.data.map((record) => ({
+        id: record.id,
+        debitedAccountId: record.debitedAccountId,
+        debitedUsername: record.debitedUsername,
+        creditedAccountId: record.creditedAccountId,
+        creditedUsername: record.creditedUsername,
+        value: formatMoneyForDisplay(record.value),
+        createdAt: record.createdAt,
         type:
-          transaction.debitedAccountId === accountId.toString()
+          record.debitedAccountId === accountId.toString()
             ? "cash-out"
             : "cash-in",
       })),
