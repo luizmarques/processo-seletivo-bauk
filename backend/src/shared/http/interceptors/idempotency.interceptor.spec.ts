@@ -372,6 +372,33 @@ describe("IdempotencyInterceptor", () => {
     });
   });
 
+  it("usa ttl padrao de 5 segundos quando a variavel de ambiente e invalida", async () => {
+    const previousTtl = process.env.IDEMPOTENCY_TTL_SECONDS;
+    process.env.IDEMPOTENCY_TTL_SECONDS = "abc";
+    try {
+      const redisService = new FakeRedisService();
+      const interceptor = new IdempotencyInterceptor(redisService as never);
+      const context = createExecutionContext({
+        method: "POST",
+        path: "/wallet/transfer",
+        headers: { "idempotency-key": transferKey },
+      });
+
+      await collectObservableResult(
+        interceptor.intercept(context, { handle: () => of({ id: "tx-1" }) } as never),
+      );
+
+      const key = IdempotencyKey.fromRaw(transferKey).toString();
+      expect(redisService.ttlByKey.get(`idempotency:${key}`)).toBe(5);
+    } finally {
+      if (previousTtl === undefined) {
+        delete process.env.IDEMPOTENCY_TTL_SECONDS;
+      } else {
+        process.env.IDEMPOTENCY_TTL_SECONDS = previousTtl;
+      }
+    }
+  });
+
   it("aceita chave composta na rota de transferencia", async () => {
     const redisService = new FakeRedisService();
     const interceptor = new IdempotencyInterceptor(redisService as never);

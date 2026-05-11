@@ -7,7 +7,7 @@ export class PasswordHash {
 
   constructor(input: string) {
     if (!BCRYPT_HASH_PATTERN.test(input)) {
-      throw new ValidationDomainError("Hash de senha invalido.");
+      throw new ValidationDomainError("Hash de senha inválido.");
     }
     this.value = input;
   }

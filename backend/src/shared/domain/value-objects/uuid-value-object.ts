@@ -9,7 +9,7 @@ export abstract class UuidValueObject {
     label: string,
   ) {
     if (!UUID_PATTERN.test(value)) {
-      throw new ValidationDomainError(`${label} invalido.`);
+      throw new ValidationDomainError(`${label} inválido.`);
     }
   }
 
