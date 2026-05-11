@@ -1,4 +1,4 @@
-import { ValidationDomainError } from '../errors/domain.errors';
+import { ValidationDomainError } from "../errors/domain.errors";
 
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$.{53}$/;
 
@@ -7,7 +7,7 @@ export class PasswordHash {
 
   constructor(input: string) {
     if (!BCRYPT_HASH_PATTERN.test(input)) {
-      throw new ValidationDomainError('Hash de senha invalido.');
+      throw new ValidationDomainError("Hash de senha invalido.");
     }
     this.value = input;
   }
@@ -16,4 +16,3 @@ export class PasswordHash {
     return this.value;
   }
 }
-

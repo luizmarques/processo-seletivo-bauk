@@ -1,15 +1,17 @@
-import type Decimal from 'decimal.js';
-import { ValidationDomainError } from '../errors/domain.errors';
-import { Balance } from './balance';
+import type Decimal from "decimal.js";
+import { ValidationDomainError } from "../errors/domain.errors";
+import { Balance } from "./balance";
 
-export const REQUIRED_INITIAL_BALANCE = '100.0000';
+export const REQUIRED_INITIAL_BALANCE = "100.0000";
 
 export class InitialBalance extends Balance {
   private constructor(input: Decimal.Value) {
     super(input);
 
     if (this.toString() !== REQUIRED_INITIAL_BALANCE) {
-      throw new ValidationDomainError(`Saldo inicial deve ser ${REQUIRED_INITIAL_BALANCE}.`);
+      throw new ValidationDomainError(
+        `Saldo inicial deve ser ${REQUIRED_INITIAL_BALANCE}.`,
+      );
     }
   }
 

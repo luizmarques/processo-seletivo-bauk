@@ -1,10 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { USER_REPOSITORY, PASSWORD_HASHER } from '../../../shared/constants/injection-tokens';
-import { ResourceConflictError } from '../../../shared/domain/errors/domain.errors';
-import { PlainPassword } from '../../../shared/domain/value-objects/plain-password';
-import { Username } from '../../../shared/domain/value-objects/username';
-import type { PasswordHasher } from '../../../shared/security/bcrypt-password.service';
-import type { UserRepository } from '../domain/user.repository';
+import { Inject, Injectable } from "@nestjs/common";
+import {
+  USER_REPOSITORY,
+  PASSWORD_HASHER,
+} from "../../../shared/constants/injection-tokens";
+import { ResourceConflictError } from "../../../shared/domain/errors/domain.errors";
+import { PlainPassword } from "../../../shared/domain/value-objects/plain-password";
+import { Username } from "../../../shared/domain/value-objects/username";
+import type { PasswordHasher } from "../../../shared/security/bcrypt-password.service";
+import type { UserRepository } from "../domain/user.repository";
 
 @Injectable()
 export class RegisterUserUseCase {
@@ -13,12 +16,17 @@ export class RegisterUserUseCase {
     @Inject(PASSWORD_HASHER) private readonly passwordHasher: PasswordHasher,
   ) {}
 
-  async execute(input: { username: string; password: string }): Promise<{ id: string; username: string }> {
+  async execute(input: {
+    username: string;
+    password: string;
+  }): Promise<{ id: string; username: string }> {
     const username = new Username(input.username);
     const password = new PlainPassword(input.password);
-    const existingUser = await this.userRepository.findByUsername(username.toString());
+    const existingUser = await this.userRepository.findByUsername(
+      username.toString(),
+    );
     if (existingUser) {
-      throw new ResourceConflictError('Username já utilizado.');
+      throw new ResourceConflictError("Username já utilizado.");
     }
 
     const hashedPassword = await this.passwordHasher.hash(password);

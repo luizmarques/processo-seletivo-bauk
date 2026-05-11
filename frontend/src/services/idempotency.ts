@@ -1,4 +1,4 @@
-import { normalizeMoneyInput } from './money';
+import { normalizeMoneyInput } from "./money";
 import {
   toIdempotencyKey,
   toTimeComponent,
@@ -6,9 +6,9 @@ import {
   type MoneyAmount,
   type TimeComponent,
   type Username,
-} from '../types/value-objects';
+} from "../types/value-objects";
 
-const DEFAULT_IDEMPOTENCY_TIME_COMPONENT = toTimeComponent('10');
+const DEFAULT_IDEMPOTENCY_TIME_COMPONENT = toTimeComponent("10");
 
 function resolveTimeComponent(providedTime?: string): TimeComponent {
   const explicitTime =
@@ -16,9 +16,11 @@ function resolveTimeComponent(providedTime?: string): TimeComponent {
     import.meta.env.VITE_IDEMPOTENCY_TIME?.trim() ??
     import.meta.env.IDEMPOTENCY_TIME?.trim() ??
     import.meta.env.IDEMPOTENCY_TIME_SECONDS?.trim() ??
-    '';
+    "";
 
-  return explicitTime.length > 0 ? toTimeComponent(explicitTime) : DEFAULT_IDEMPOTENCY_TIME_COMPONENT;
+  return explicitTime.length > 0
+    ? toTimeComponent(explicitTime)
+    : DEFAULT_IDEMPOTENCY_TIME_COMPONENT;
 }
 
 export function buildTransferIdempotencyKey(input: {
@@ -32,5 +34,7 @@ export function buildTransferIdempotencyKey(input: {
   const normalizedValue = normalizeMoneyInput(input.value);
   const time = resolveTimeComponent(input.time);
 
-  return toIdempotencyKey(`${senderUsername}:${recipientUsername}:${normalizedValue}:${time}`);
+  return toIdempotencyKey(
+    `${senderUsername}:${recipientUsername}:${normalizedValue}:${time}`,
+  );
 }

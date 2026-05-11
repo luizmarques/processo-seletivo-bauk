@@ -1,4 +1,8 @@
-import { BadRequestException, ValidationPipe, type ValidationPipeOptions } from '@nestjs/common';
+import {
+  BadRequestException,
+  ValidationPipe,
+  type ValidationPipeOptions,
+} from "@nestjs/common";
 
 export const requestValidationOptions: ValidationPipeOptions = {
   whitelist: true,
@@ -11,7 +15,9 @@ export const requestValidationOptions: ValidationPipeOptions = {
   },
   exceptionFactory: (errors) => {
     const firstConstraint = Object.values(errors[0]?.constraints ?? {})[0];
-    return new BadRequestException(String(firstConstraint ?? 'Payload inválido.'));
+    return new BadRequestException(
+      String(firstConstraint ?? "Payload inválido."),
+    );
   },
 };
 

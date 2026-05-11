@@ -2,20 +2,20 @@ export type Brand<TValue, TBrand extends string> = TValue & {
   readonly __brand: TBrand;
 };
 
-export type ApiUrl = Brand<string, 'ApiUrl'>;
-export type JwtToken = Brand<string, 'JwtToken'>;
-export type Username = Brand<string, 'Username'>;
-export type Password = Brand<string, 'Password'>;
-export type FeedbackMessage = Brand<string, 'FeedbackMessage'>;
-export type MoneyAmount = Brand<string, 'MoneyAmount'>;
-export type IdempotencyKey = Brand<string, 'IdempotencyKey'>;
-export type EntityId = Brand<string, 'EntityId'>;
-export type AccountId = Brand<string, 'AccountId'>;
-export type ISODateString = Brand<string, 'ISODateString'>;
-export type TimeComponent = Brand<string, 'TimeComponent'>;
-export type PageNumber = Brand<number, 'PageNumber'>;
-export type PageSize = Brand<number, 'PageSize'>;
-export type TotalItems = Brand<number, 'TotalItems'>;
+export type ApiUrl = Brand<string, "ApiUrl">;
+export type JwtToken = Brand<string, "JwtToken">;
+export type Username = Brand<string, "Username">;
+export type Password = Brand<string, "Password">;
+export type FeedbackMessage = Brand<string, "FeedbackMessage">;
+export type MoneyAmount = Brand<string, "MoneyAmount">;
+export type IdempotencyKey = Brand<string, "IdempotencyKey">;
+export type EntityId = Brand<string, "EntityId">;
+export type AccountId = Brand<string, "AccountId">;
+export type ISODateString = Brand<string, "ISODateString">;
+export type TimeComponent = Brand<string, "TimeComponent">;
+export type PageNumber = Brand<number, "PageNumber">;
+export type PageSize = Brand<number, "PageSize">;
+export type TotalItems = Brand<number, "TotalItems">;
 
 export function toApiUrl(value: string): ApiUrl {
   return value as ApiUrl;

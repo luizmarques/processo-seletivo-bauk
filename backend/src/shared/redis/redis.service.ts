@@ -1,5 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Inject, Injectable } from "@nestjs/common";
+import Redis from "ioredis";
 
 @Injectable()
 export class RedisService {
@@ -10,11 +10,15 @@ export class RedisService {
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
-    await this.redis.set(key, value, 'EX', ttlSeconds);
+    await this.redis.set(key, value, "EX", ttlSeconds);
   }
 
-  async setIfNotExists(key: string, value: string, ttlSeconds: number): Promise<boolean> {
-    const result = await this.redis.set(key, value, 'EX', ttlSeconds, 'NX');
-    return result === 'OK';
+  async setIfNotExists(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    const result = await this.redis.set(key, value, "EX", ttlSeconds, "NX");
+    return result === "OK";
   }
 }

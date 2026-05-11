@@ -1,4 +1,7 @@
-import { ResourceConflictError, ValidationDomainError } from '../errors/domain.errors';
+import {
+  ResourceConflictError,
+  ValidationDomainError,
+} from "../errors/domain.errors";
 
 export class Username {
   private readonly value: string;
@@ -6,7 +9,9 @@ export class Username {
   constructor(input: string) {
     const normalized = input.trim().toLowerCase();
     if (normalized.length < 3) {
-      throw new ValidationDomainError('Username deve possuir ao menos 3 caracteres.');
+      throw new ValidationDomainError(
+        "Username deve possuir ao menos 3 caracteres.",
+      );
     }
     this.value = normalized;
   }
@@ -21,8 +26,7 @@ export class Username {
 
   ensureDifferentFrom(other: Username): void {
     if (this.equals(other)) {
-      throw new ResourceConflictError('Username deve ser diferente.');
+      throw new ResourceConflictError("Username deve ser diferente.");
     }
   }
 }
-

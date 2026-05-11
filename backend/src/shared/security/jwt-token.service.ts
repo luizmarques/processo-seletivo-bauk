@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { AccountId } from '../domain/value-objects/account-id';
-import { UserId } from '../domain/value-objects/user-id';
-import { Username } from '../domain/value-objects/username';
+import { Injectable } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { AccountId } from "../domain/value-objects/account-id";
+import { UserId } from "../domain/value-objects/user-id";
+import { Username } from "../domain/value-objects/username";
 
 export interface TokenPayload {
   sub: UserId;

@@ -1,22 +1,29 @@
-import { CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { Test } from '@nestjs/testing';
-import { AuthController } from './auth/auth.controller';
-import { LoginUseCase } from './auth/application/login.use-case';
-import { UsersController } from './users/users.controller';
-import { RegisterUserUseCase } from './users/application/register-user.use-case';
-import { WalletController } from './wallet/wallet.controller';
-import { CreateTransferUseCase } from './wallet/application/create-transfer.use-case';
-import { GetBalanceUseCase } from './wallet/application/get-balance.use-case';
-import { ListTransactionsUseCase } from './wallet/application/list-transactions.use-case';
-import { JwtAuthGuard } from '../shared/auth/jwt-auth.guard';
-import { DomainExceptionFilter } from '../shared/http/filters/domain-exception.filter';
-import { IdempotencyInterceptor } from '../shared/http/interceptors/idempotency.interceptor';
-import { createRequestValidationPipe } from '../shared/http/pipes/request-validation-options';
-import { RedisService } from '../shared/redis/redis.service';
+import {
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from "@nestjs/common";
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from "@nestjs/platform-fastify";
+import { Test } from "@nestjs/testing";
+import { AuthController } from "./auth/auth.controller";
+import { LoginUseCase } from "./auth/application/login.use-case";
+import { UsersController } from "./users/users.controller";
+import { RegisterUserUseCase } from "./users/application/register-user.use-case";
+import { WalletController } from "./wallet/wallet.controller";
+import { CreateTransferUseCase } from "./wallet/application/create-transfer.use-case";
+import { GetBalanceUseCase } from "./wallet/application/get-balance.use-case";
+import { ListTransactionsUseCase } from "./wallet/application/list-transactions.use-case";
+import { JwtAuthGuard } from "../shared/auth/jwt-auth.guard";
+import { DomainExceptionFilter } from "../shared/http/filters/domain-exception.filter";
+import { IdempotencyInterceptor } from "../shared/http/interceptors/idempotency.interceptor";
+import { createRequestValidationPipe } from "../shared/http/pipes/request-validation-options";
+import { RedisService } from "../shared/redis/redis.service";
 
 export class FakeRegisterUserUseCase {
-  public result = { id: 'user-1', username: 'janedoe' };
+  public result = { id: "user-1", username: "janedoe" };
   public error: Error | null = null;
   public calls: Array<{ username: string; password: string }> = [];
 
@@ -29,14 +36,14 @@ export class FakeRegisterUserUseCase {
   }
 
   reset(): void {
-    this.result = { id: 'user-1', username: 'janedoe' };
+    this.result = { id: "user-1", username: "janedoe" };
     this.error = null;
     this.calls = [];
   }
 }
 
 export class FakeLoginUseCase {
-  public result = { accessToken: 'jwt-token' };
+  public result = { accessToken: "jwt-token" };
   public error: Error | null = null;
   public calls: Array<{ username: string; password: string }> = [];
 
@@ -49,14 +56,14 @@ export class FakeLoginUseCase {
   }
 
   reset(): void {
-    this.result = { accessToken: 'jwt-token' };
+    this.result = { accessToken: "jwt-token" };
     this.error = null;
     this.calls = [];
   }
 }
 
 export class FakeCreateTransferUseCase {
-  public result = { id: 'tx-1', value: '10.00' };
+  public result = { id: "tx-1", value: "10.00" };
   public error: Error | null = null;
   public calls: Array<{
     senderUserId: string;
@@ -79,14 +86,14 @@ export class FakeCreateTransferUseCase {
   }
 
   reset(): void {
-    this.result = { id: 'tx-1', value: '10.00' };
+    this.result = { id: "tx-1", value: "10.00" };
     this.error = null;
     this.calls = [];
   }
 }
 
 export class FakeGetBalanceUseCase {
-  public result = { balance: '100.00' };
+  public result = { balance: "100.00" };
   public error: Error | null = null;
   public calls: string[] = [];
 
@@ -99,7 +106,7 @@ export class FakeGetBalanceUseCase {
   }
 
   reset(): void {
-    this.result = { balance: '100.00' };
+    this.result = { balance: "100.00" };
     this.error = null;
     this.calls = [];
   }
@@ -109,14 +116,14 @@ export class FakeListTransactionsUseCase {
   public result = {
     data: [
       {
-        id: 'tx-1',
-        debitedAccountId: 'acc-1',
-        debitedUsername: 'janedoe',
-        creditedAccountId: 'acc-2',
-        creditedUsername: 'johndoe',
-        value: '10.00',
-        createdAt: new Date('2026-05-06T10:00:00.000Z'),
-        type: 'cash-out' as const,
+        id: "tx-1",
+        debitedAccountId: "acc-1",
+        debitedUsername: "janedoe",
+        creditedAccountId: "acc-2",
+        creditedUsername: "johndoe",
+        value: "10.00",
+        createdAt: new Date("2026-05-06T10:00:00.000Z"),
+        type: "cash-out" as const,
       },
     ],
     meta: { total: 1, page: 1, limit: 10 },
@@ -136,14 +143,14 @@ export class FakeListTransactionsUseCase {
     this.result = {
       data: [
         {
-          id: 'tx-1',
-          debitedAccountId: 'acc-1',
-          debitedUsername: 'janedoe',
-          creditedAccountId: 'acc-2',
-          creditedUsername: 'johndoe',
-          value: '10.00',
-          createdAt: new Date('2026-05-06T10:00:00.000Z'),
-          type: 'cash-out' as const,
+          id: "tx-1",
+          debitedAccountId: "acc-1",
+          debitedUsername: "janedoe",
+          creditedAccountId: "acc-2",
+          creditedUsername: "johndoe",
+          value: "10.00",
+          createdAt: new Date("2026-05-06T10:00:00.000Z"),
+          type: "cash-out" as const,
         },
       ],
       meta: { total: 1, page: 1, limit: 10 },
@@ -180,14 +187,14 @@ export class FakeRedisService {
 class TestJwtAuthGuard implements CanActivate {
   static shouldAllow = true;
   static user = {
-    userId: 'user-1',
-    username: 'janedoe',
-    accountId: 'acc-1',
+    userId: "user-1",
+    username: "janedoe",
+    accountId: "acc-1",
   };
 
   canActivate(context: ExecutionContext): boolean {
     if (!TestJwtAuthGuard.shouldAllow) {
-      throw new UnauthorizedException('Unauthorized');
+      throw new UnauthorizedException("Unauthorized");
     }
 
     const request = context.switchToHttp().getRequest();
@@ -204,7 +211,9 @@ export type HttpTestAppContext = {
   getBalanceUseCase: FakeGetBalanceUseCase;
   listTransactionsUseCase: FakeListTransactionsUseCase;
   redisService: FakeRedisService;
-  setAuthenticatedUser(user: { userId: string; username: string; accountId: string } | null): void;
+  setAuthenticatedUser(
+    user: { userId: string; username: string; accountId: string } | null,
+  ): void;
   reset(): void;
   close(): Promise<void>;
 };
@@ -233,7 +242,9 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
     .useClass(TestJwtAuthGuard)
     .compile();
 
-  const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+  const app = moduleRef.createNestApplication<NestFastifyApplication>(
+    new FastifyAdapter(),
+  );
   app.useGlobalPipes(createRequestValidationPipe());
   app.useGlobalFilters(new DomainExceptionFilter());
   await app.init();
@@ -262,9 +273,9 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
       redisService.reset();
       TestJwtAuthGuard.shouldAllow = true;
       TestJwtAuthGuard.user = {
-        userId: 'user-1',
-        username: 'janedoe',
-        accountId: 'acc-1',
+        userId: "user-1",
+        username: "janedoe",
+        accountId: "acc-1",
       };
     },
     async close() {

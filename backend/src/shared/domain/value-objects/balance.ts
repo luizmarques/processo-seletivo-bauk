@@ -1,6 +1,6 @@
-import Decimal from 'decimal.js';
-import { ValidationDomainError } from '../errors/domain.errors';
-import { TransferAmount } from './transfer-amount';
+import Decimal from "decimal.js";
+import { ValidationDomainError } from "../errors/domain.errors";
+import { TransferAmount } from "./transfer-amount";
 
 export class Balance {
   private readonly value: Decimal;
@@ -8,10 +8,12 @@ export class Balance {
   constructor(input: Decimal.Value) {
     const decimal = new Decimal(input);
     if (decimal.lt(0)) {
-      throw new ValidationDomainError('Saldo não pode ser negativo.');
+      throw new ValidationDomainError("Saldo não pode ser negativo.");
     }
     if ((decimal.decimalPlaces() ?? 0) > 4) {
-      throw new ValidationDomainError('Saldo deve ter no máximo 4 casas decimais.');
+      throw new ValidationDomainError(
+        "Saldo deve ter no máximo 4 casas decimais.",
+      );
     }
     this.value = decimal.toDecimalPlaces(4);
   }
@@ -22,7 +24,9 @@ export class Balance {
 
   ensureCanDebit(amount: TransferAmount): void {
     if (this.value.lessThan(amount.toDecimal())) {
-      throw new ValidationDomainError('Saldo insuficiente para a transferência.');
+      throw new ValidationDomainError(
+        "Saldo insuficiente para a transferência.",
+      );
     }
   }
 

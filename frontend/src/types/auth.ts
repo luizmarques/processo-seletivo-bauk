@@ -1,4 +1,9 @@
-import type { FeedbackMessage, JwtToken, Password, Username } from './value-objects';
+import type {
+  FeedbackMessage,
+  JwtToken,
+  Password,
+  Username,
+} from "./value-objects";
 
 export interface LoginRequest {
   username: Username;

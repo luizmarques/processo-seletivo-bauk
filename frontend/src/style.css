@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-bg: #F5F5F5;
-  --color-brand-primary: #2B4641;
-  --color-brand-secondary: #CDDBDE;
-  --color-brand-accent: #00D1FF;
-  --color-brand-deep: #001B3D;
-  --color-brand-text: #1A1A1A;
+  --color-brand-bg: #f5f5f5;
+  --color-brand-primary: #2b4641;
+  --color-brand-secondary: #cddbde;
+  --color-brand-accent: #00d1ff;
+  --color-brand-deep: #001b3d;
+  --color-brand-text: #1a1a1a;
   --color-brand-muted: #64748b;
   --color-brand-border: #e2e8f0;
 
@@ -26,7 +26,12 @@
     @apply antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-montserrat);
     @apply font-bold tracking-tight text-brand-primary;
   }

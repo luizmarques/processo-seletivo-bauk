@@ -7,4 +7,3 @@ export class AuthenticationError extends DomainError {}
 export class ResourceConflictError extends DomainError {}
 
 export class ResourceNotFoundError extends DomainError {}
-

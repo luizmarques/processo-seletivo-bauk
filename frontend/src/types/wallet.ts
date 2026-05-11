@@ -8,10 +8,10 @@ import type {
   PageSize,
   TotalItems,
   Username,
-} from './value-objects';
+} from "./value-objects";
 
-export type TransactionType = 'cash-in' | 'cash-out';
-export type TransactionOrder = 'ASC' | 'DESC';
+export type TransactionType = "cash-in" | "cash-out";
+export type TransactionOrder = "ASC" | "DESC";
 
 export interface WalletBalanceResponse {
   balance: MoneyAmount;

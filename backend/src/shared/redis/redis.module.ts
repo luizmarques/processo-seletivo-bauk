@@ -1,6 +1,6 @@
-import { Global, Module } from '@nestjs/common';
-import Redis from 'ioredis';
-import { RedisService } from './redis.service';
+import { Global, Module } from "@nestjs/common";
+import Redis from "ioredis";
+import { RedisService } from "./redis.service";
 
 @Global()
 @Module({
@@ -9,7 +9,7 @@ import { RedisService } from './redis.service';
       provide: Redis,
       useFactory: () =>
         new Redis({
-          host: process.env.REDIS_HOST ?? 'localhost',
+          host: process.env.REDIS_HOST ?? "localhost",
           port: Number(process.env.REDIS_PORT ?? 6379),
         }),
     },
@@ -18,4 +18,3 @@ import { RedisService } from './redis.service';
   exports: [Redis, RedisService],
 })
 export class RedisModule {}
-

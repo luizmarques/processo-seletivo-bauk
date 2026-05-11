@@ -1,9 +1,9 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { MigrationInterface, QueryRunner } from "typeorm";
 
-const INITIAL_BALANCE_DEFAULT = '100.0000';
+const INITIAL_BALANCE_DEFAULT = "100.0000";
 
 export class InitialSchema1715000000000 implements MigrationInterface {
-  name = 'InitialSchema1715000000000';
+  name = "InitialSchema1715000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
@@ -38,13 +38,21 @@ export class InitialSchema1715000000000 implements MigrationInterface {
         CONSTRAINT "FK_transactions_credited_account_id" FOREIGN KEY ("credited_account_id") REFERENCES "accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
       )
     `);
-    await queryRunner.query(`CREATE INDEX "IDX_transactions_debited_created" ON "transactions" ("debited_account_id", "created_at")`);
-    await queryRunner.query(`CREATE INDEX "IDX_transactions_credited_created" ON "transactions" ("credited_account_id", "created_at")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_transactions_debited_created" ON "transactions" ("debited_account_id", "created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_transactions_credited_created" ON "transactions" ("credited_account_id", "created_at")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "public"."IDX_transactions_credited_created"`);
-    await queryRunner.query(`DROP INDEX "public"."IDX_transactions_debited_created"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_transactions_credited_created"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_transactions_debited_created"`,
+    );
     await queryRunner.query(`DROP TABLE "transactions"`);
     await queryRunner.query(`DROP TABLE "users"`);
     await queryRunner.query(`DROP TABLE "accounts"`);

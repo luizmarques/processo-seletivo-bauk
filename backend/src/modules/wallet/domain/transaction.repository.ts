@@ -1,13 +1,13 @@
-import { TransactionEntity } from '../../../infrastructure/database/typeorm/entities/transaction.entity';
+import { TransactionEntity } from "../../../infrastructure/database/typeorm/entities/transaction.entity";
 
 export interface TransactionFilters {
   accountId: string;
   page: number;
   limit: number;
-  type?: 'cash-in' | 'cash-out';
+  type?: "cash-in" | "cash-out";
   startDate?: string;
   endDate?: string;
-  order?: 'ASC' | 'DESC';
+  order?: "ASC" | "DESC";
 }
 
 export interface PaginatedTransactions {
