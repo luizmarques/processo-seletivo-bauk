@@ -13,8 +13,15 @@ dist-ssr
 *.local
 
 # Editor directories and files
+skills-lock.json
+docs
+skills-lock.json
+CONTEXT-MAP.md
+CONTEXT.md
+CLAUDE.md
 AGENTS.md
 test.md
+.claude
 .vscode/*
 !.vscode/extensions.json
 .idea

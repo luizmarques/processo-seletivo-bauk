@@ -9,7 +9,7 @@ export class TransferAmount {
     if (decimal.lte(0)) {
       throw new ValidationDomainError("O valor deve ser maior que zero.");
     }
-    if ((decimal.decimalPlaces() ?? 0) > 4) {
+    if (decimal.decimalPlaces() > 4) {
       throw new ValidationDomainError(
         "O valor deve ter no máximo 4 casas decimais.",
       );

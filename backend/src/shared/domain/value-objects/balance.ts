@@ -10,7 +10,7 @@ export class Balance {
     if (decimal.lt(0)) {
       throw new ValidationDomainError("Saldo não pode ser negativo.");
     }
-    if ((decimal.decimalPlaces() ?? 0) > 4) {
+    if (decimal.decimalPlaces() > 4) {
       throw new ValidationDomainError(
         "Saldo deve ter no máximo 4 casas decimais.",
       );
