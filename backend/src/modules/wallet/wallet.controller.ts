@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   ValidationPipe,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -95,6 +96,7 @@ export class WalletController {
   @ApiForbiddenResponse({
     description: "Usuário autenticado não pode transferir para si mesmo.",
   })
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @UseInterceptors(IdempotencyInterceptor)
   transfer(
     @CurrentUserDecorator() user: CurrentUser,

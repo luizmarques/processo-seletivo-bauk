@@ -14,6 +14,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
+import { Throttle, SkipThrottle } from "@nestjs/throttler";
 import { requestValidationOptions } from "../../shared/http/pipes/request-validation-options";
 import { LoginUseCase } from "./application/login.use-case";
 import { LoginDto } from "./dto/login.dto";
@@ -25,6 +26,7 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({
     summary: "Autentica um usuário e retorna um JWT válido por 24 horas.",
   })
@@ -47,6 +49,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Post("logout")
   @HttpCode(HttpStatus.OK)
+  @SkipThrottle()
   @ApiOperation({
     summary:
       "Encerra a sessão no cliente. O backend retorna apenas uma mensagem informativa.",

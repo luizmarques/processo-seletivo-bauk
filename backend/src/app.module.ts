@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { AccountEntity } from "./infrastructure/database/typeorm/entities/account.entity";
 import { TransactionEntity } from "./infrastructure/database/typeorm/entities/transaction.entity";
 import { UserEntity } from "./infrastructure/database/typeorm/entities/user.entity";
@@ -26,10 +28,13 @@ import { RedisModule } from "./shared/redis/redis.module";
       migrations: ["dist/infrastructure/database/typeorm/migrations/*.js"],
       synchronize: false,
     }),
+    // Padrão global: 30 requisições por minuto por IP.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
     RedisModule,
     AuthModule,
     UsersModule,
     WalletModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

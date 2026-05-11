@@ -13,6 +13,7 @@ import {
   ApiOperation,
   ApiTags,
 } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { requestValidationOptions } from "../../shared/http/pipes/request-validation-options";
 import { RegisterUserUseCase } from "./application/register-user.use-case";
 import { RegisterUserDto } from "./dto/register-user.dto";
@@ -24,6 +25,7 @@ export class UsersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @ApiOperation({
     summary: "Cadastra um novo usuário com conta e saldo inicial.",
   })
