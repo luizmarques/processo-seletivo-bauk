@@ -1,0 +1,97 @@
+name: bauk-aws-sim
+
+services:
+  # Simula AWS LocalStack (S3, SQS, SNS disponíveis no tier free)
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,sns
+      DEFAULT_REGION: us-east-1
+      DEBUG: 0
+    volumes:
+      - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Simula AWS RDS (PostgreSQL)
+  rds-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bauk}
+      POSTGRES_USER: ${POSTGRES_USER:-bauk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bauk}
+    ports:
+      - "5432:5432"
+    volumes:
+      - rds_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bauk}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Simula AWS ElastiCache (Redis)
+  elasticache-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: rds-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-bauk}
+      POSTGRES_USER: ${POSTGRES_USER:-bauk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bauk}
+      REDIS_HOST: elasticache-redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-supersecretjwtkey}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      IDEMPOTENCY_TTL_SECONDS: ${IDEMPOTENCY_TTL_SECONDS:-3600}
+      CORS: ${CORS:-http://localhost:5173}
+      AUTO_SEED: ${AUTO_SEED:-true}
+    depends_on:
+      rds-postgres:
+        condition: service_healthy
+      elasticache-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/docs"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_IDEMPOTENCY_TIME: ${VITE_IDEMPOTENCY_TIME:-10}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  localstack_data:
+  rds_data:

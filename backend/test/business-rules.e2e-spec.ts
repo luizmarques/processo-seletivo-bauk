@@ -1,19 +1,13 @@
-import {
-  AuthenticationError,
-  ResourceConflictError,
-  ResourceNotFoundError,
-  ValidationDomainError,
-} from '../src/shared/domain/errors/domain.errors';
-import { createHttpTestApp, type HttpTestAppContext } from '../src/modules/http-test-app.factory';
+import { createE2ETestApp, type E2ETestAppContext } from '../src/modules/e2e-test-app.factory';
 
 describe('Business Rules E2E', () => {
-  let context: HttpTestAppContext;
+  let context: E2ETestAppContext;
 
   beforeAll(async () => {
-    context = await createHttpTestApp();
+    context = await createE2ETestApp();
   });
 
-  beforeEach(() => {
+  afterEach(() => {
     context.reset();
   });
 
@@ -21,8 +15,40 @@ describe('Business Rules E2E', () => {
     await context.close();
   });
 
+  async function registerAndLogin(
+    username: string,
+    password = 'Senha123',
+  ): Promise<string> {
+    await context.app.inject({
+      method: 'POST',
+      url: '/users',
+      payload: { username, password },
+    });
+    const res = await context.app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { username, password },
+    });
+    return (res.json() as { accessToken: string }).accessToken;
+  }
+
   describe('Cadastro de usuários', () => {
-    it('aceita somente credenciais válidas e normaliza o username antes de aplicar a regra de unicidade', async () => {
+    it('cria usuário com saldo inicial e retorna id + username', async () => {
+      const response = await context.app.inject({
+        method: 'POST',
+        url: '/users',
+        payload: { username: 'janedoe', password: 'Senha123' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = response.json<{ id: string; username: string }>();
+      expect(body.username).toBe('janedoe');
+      expect(body.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
+    });
+
+    it('normaliza o username (trim + lowercase) antes de aplicar a regra de unicidade', async () => {
       const response = await context.app.inject({
         method: 'POST',
         url: '/users',
@@ -30,13 +56,15 @@ describe('Business Rules E2E', () => {
       });
 
       expect(response.statusCode).toBe(201);
-      expect(context.registerUserUseCase.calls).toEqual([
-        { username: 'janedoe', password: 'Senha123' },
-      ]);
+      expect(response.json<{ username: string }>().username).toBe('janedoe');
     });
 
     it('bloqueia cadastro quando o username já estiver em uso', async () => {
-      context.registerUserUseCase.error = new ResourceConflictError('Username já utilizado.');
+      await context.app.inject({
+        method: 'POST',
+        url: '/users',
+        payload: { username: 'janedoe', password: 'Senha123' },
+      });
 
       const response = await context.app.inject({
         method: 'POST',
@@ -60,12 +88,17 @@ describe('Business Rules E2E', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(context.registerUserUseCase.calls).toEqual([]);
     });
   });
 
   describe('Autenticação', () => {
-    it('normaliza o username no login e retorna o token do usuário autenticado', async () => {
+    it('normaliza o username no login e retorna token JWT válido', async () => {
+      await context.app.inject({
+        method: 'POST',
+        url: '/users',
+        payload: { username: 'janedoe', password: 'Senha123' },
+      });
+
       const response = await context.app.inject({
         method: 'POST',
         url: '/auth/login',
@@ -73,19 +106,20 @@ describe('Business Rules E2E', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({ accessToken: 'jwt-token' });
-      expect(context.loginUseCase.calls).toEqual([
-        { username: 'janedoe', password: 'Senha123' },
-      ]);
+      expect(response.json()).toHaveProperty('accessToken');
     });
 
-    it('nega acesso quando as credenciais informadas não forem válidas', async () => {
-      context.loginUseCase.error = new AuthenticationError('Credenciais inválidas.');
+    it('nega acesso quando a senha estiver errada', async () => {
+      await context.app.inject({
+        method: 'POST',
+        url: '/users',
+        payload: { username: 'janedoe', password: 'Senha123' },
+      });
 
       const response = await context.app.inject({
         method: 'POST',
         url: '/auth/login',
-        payload: { username: 'janedoe', password: 'Senha123' },
+        payload: { username: 'janedoe', password: 'SenhaErrada1' },
       });
 
       expect(response.statusCode).toBe(401);
@@ -98,58 +132,77 @@ describe('Business Rules E2E', () => {
   });
 
   describe('Transferências internas', () => {
-    it('usa o usuário autenticado como origem e normaliza o valor monetário antes da transferência', async () => {
-      const response = await context.app.inject({
+    it('debita remetente e credita destinatário — saldo vai de 100 para 90', async () => {
+      const tokenRemetente = await registerAndLogin('remetente');
+      await registerAndLogin('destinatario');
+
+      const transferRes = await context.app.inject({
         method: 'POST',
         url: '/wallet/transfer',
-        headers: { 'idempotency-key': 'janedoe:johndoe:10.0000:123456' },
-        payload: { username: ' JohnDoe ', value: '10' },
+        headers: {
+          authorization: `Bearer ${tokenRemetente}`,
+          'idempotency-key': 'remetente:destinatario:10.0000:001',
+        },
+        payload: { username: 'destinatario', value: '10.00' },
       });
 
-      expect(response.statusCode).toBe(201);
-      expect(context.createTransferUseCase.calls).toEqual([
-        {
-          senderUserId: 'user-1',
-          senderAccountId: 'acc-1',
-          recipientUsername: 'johndoe',
-          value: '10.0000',
-        },
-      ]);
+      expect(transferRes.statusCode).toBe(201);
+      expect(transferRes.json()).toMatchObject({ value: '10.00' });
+
+      const balanceRes = await context.app.inject({
+        method: 'GET',
+        url: '/wallet/balance',
+        headers: { authorization: `Bearer ${tokenRemetente}` },
+      });
+      expect(balanceRes.json<{ balance: string }>().balance).toBe('90.00');
     });
 
     it('impede double-spend quando a mesma chave de idempotência é reenviada na janela de proteção', async () => {
-      const firstResponse = await context.app.inject({
+      const token = await registerAndLogin('alice');
+      await registerAndLogin('bob');
+
+      const first = await context.app.inject({
         method: 'POST',
         url: '/wallet/transfer',
-        headers: { 'idempotency-key': 'janedoe:johndoe:10.0000:123456' },
-        payload: { username: 'johndoe', value: '10.00' },
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'alice:bob:10.0000:001',
+        },
+        payload: { username: 'bob', value: '10.00' },
       });
 
-      const secondResponse = await context.app.inject({
+      const second = await context.app.inject({
         method: 'POST',
         url: '/wallet/transfer',
-        headers: { 'idempotency-key': 'JANEDOE:JOHNDOE:10.0000:123456' },
-        payload: { username: 'johndoe', value: '10.00' },
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'ALICE:BOB:10.0000:001',
+        },
+        payload: { username: 'bob', value: '10.00' },
       });
 
-      expect(firstResponse.statusCode).toBe(201);
-      expect(secondResponse.statusCode).toBe(409);
-      expect(secondResponse.json()).toEqual({
-        message: 'Esta transação acabou de ser realizada e, por segurança, não pode ser enviada novamente agora.',
+      expect(first.statusCode).toBe(201);
+      expect(second.statusCode).toBe(409);
+      expect(second.json()).toEqual({
+        message:
+          'Esta transação acabou de ser realizada e, por segurança, não pode ser enviada novamente agora.',
         error: 'Conflict',
         statusCode: 409,
       });
-      expect(context.createTransferUseCase.calls).toHaveLength(1);
     });
 
     it('rejeita a transferência quando o saldo for insuficiente', async () => {
-      context.createTransferUseCase.error = new ValidationDomainError('Saldo insuficiente para a transferência.');
+      const token = await registerAndLogin('pobre');
+      await registerAndLogin('rico');
 
       const response = await context.app.inject({
         method: 'POST',
         url: '/wallet/transfer',
-        headers: { 'idempotency-key': 'janedoe:johndoe:999.0000:123456' },
-        payload: { username: 'johndoe', value: '999.00' },
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'pobre:rico:999.0000:001',
+        },
+        payload: { username: 'rico', value: '999.00' },
       });
 
       expect(response.statusCode).toBe(400);
@@ -161,13 +214,16 @@ describe('Business Rules E2E', () => {
     });
 
     it('rejeita a transferência quando o destinatário não existir', async () => {
-      context.createTransferUseCase.error = new ResourceNotFoundError('Usuário não encontrado.');
+      const token = await registerAndLogin('sender');
 
       const response = await context.app.inject({
         method: 'POST',
         url: '/wallet/transfer',
-        headers: { 'idempotency-key': 'janedoe:ghost:10.0000:123456' },
-        payload: { username: 'ghost', value: '10.00' },
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'sender:fantasma:10.0000:001',
+        },
+        payload: { username: 'fantasma', value: '10.00' },
       });
 
       expect(response.statusCode).toBe(404);
@@ -177,33 +233,62 @@ describe('Business Rules E2E', () => {
         statusCode: 404,
       });
     });
+
+    it('rejeita a transferência para a própria conta', async () => {
+      const token = await registerAndLogin('narciso');
+
+      const response = await context.app.inject({
+        method: 'POST',
+        url: '/wallet/transfer',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'narciso:narciso:10.0000:001',
+        },
+        payload: { username: 'narciso', value: '10.00' },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 
   describe('Histórico financeiro', () => {
-    it('aplica paginação e filtros usando a conta do usuário autenticado', async () => {
+    it('lista transações com paginação e filtro por tipo cash-out', async () => {
+      const tokenCarla = await registerAndLogin('carla');
+      await registerAndLogin('davi');
+
+      await context.app.inject({
+        method: 'POST',
+        url: '/wallet/transfer',
+        headers: {
+          authorization: `Bearer ${tokenCarla}`,
+          'idempotency-key': 'carla:davi:5.0000:001',
+        },
+        payload: { username: 'davi', value: '5.00' },
+      });
+
       const response = await context.app.inject({
         method: 'GET',
-        url: '/wallet/transactions?page=2&limit=5&type=cash-in&order=ASC&startDate=2026-05-01&endDate=2026-05-31',
+        url: '/wallet/transactions?type=cash-out',
+        headers: { authorization: `Bearer ${tokenCarla}` },
       });
 
       expect(response.statusCode).toBe(200);
-      expect(context.listTransactionsUseCase.calls).toEqual([
-        {
-          accountId: 'acc-1',
-          page: 2,
-          limit: 5,
-          type: 'cash-in',
-          order: 'ASC',
-          startDate: '2026-05-01',
-          endDate: '2026-05-31',
-        },
-      ]);
+      const body = response.json<{
+        data: Array<{ type: string }>;
+        meta: { total: number };
+      }>();
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].type).toBe('cash-out');
+      expect(body.meta.total).toBe(1);
     });
 
     it('rejeita intervalo de datas inconsistente antes de consultar o histórico', async () => {
+      const token = await registerAndLogin('elena');
+
       const response = await context.app.inject({
         method: 'GET',
         url: '/wallet/transactions?startDate=2026-05-31&endDate=2026-05-01',
+        headers: { authorization: `Bearer ${token}` },
       });
 
       expect(response.statusCode).toBe(400);
@@ -212,7 +297,6 @@ describe('Business Rules E2E', () => {
         error: 'Bad Request',
         statusCode: 400,
       });
-      expect(context.listTransactionsUseCase.calls).toEqual([]);
     });
   });
 });
