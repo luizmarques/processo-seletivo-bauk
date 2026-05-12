@@ -44,26 +44,20 @@ export class InMemoryTransactionRepository implements TransactionRepository {
   }
 
   async listByAccount(filters: TransactionFilters): Promise<PaginatedTransactionRecords> {
+    const start = filters.startDate ? new Date(filters.startDate) : null;
+    const end = filters.endDate ? new Date(filters.endDate) : null;
+
     let results = this.store.transactions.filter((t) => {
-      if (filters.type === "cash-in") return t.creditedAccountId === filters.accountId;
-      if (filters.type === "cash-out") return t.debitedAccountId === filters.accountId;
-      return (
-        t.debitedAccountId === filters.accountId ||
-        t.creditedAccountId === filters.accountId
-      );
+      if (filters.type === "cash-in" && t.creditedAccountId !== filters.accountId) return false;
+      if (filters.type === "cash-out" && t.debitedAccountId !== filters.accountId) return false;
+      if (!filters.type && t.debitedAccountId !== filters.accountId && t.creditedAccountId !== filters.accountId) return false;
+      if (start && t.createdAt < start) return false;
+      if (end && t.createdAt > end) return false;
+      return true;
     });
 
-    if (filters.startDate) {
-      const start = new Date(filters.startDate);
-      results = results.filter((t) => t.createdAt >= start);
-    }
-    if (filters.endDate) {
-      const end = new Date(filters.endDate);
-      results = results.filter((t) => t.createdAt <= end);
-    }
-
     const order = filters.order ?? "DESC";
-    results = [...results].sort((a, b) =>
+    results = results.sort((a, b) =>
       order === "ASC"
         ? a.createdAt.getTime() - b.createdAt.getTime()
         : b.createdAt.getTime() - a.createdAt.getTime(),

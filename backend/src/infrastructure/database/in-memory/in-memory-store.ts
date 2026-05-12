@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import type { User } from "../../../modules/users/domain/user";
 
-export interface StoredAccount {
+interface StoredAccount {
   id: string;
   balance: string;
   userId: string;
 }
 
-export interface StoredTransaction {
+interface StoredTransaction {
   id: string;
   debitedAccountId: string;
   creditedAccountId: string;

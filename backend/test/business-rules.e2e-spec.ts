@@ -32,6 +32,23 @@ describe('Business Rules E2E', () => {
     return (res.json() as { accessToken: string }).accessToken;
   }
 
+  function transfer(
+    token: string,
+    username: string,
+    value: string,
+    idempotencyKey: string,
+  ) {
+    return context.app.inject({
+      method: 'POST',
+      url: '/wallet/transfer',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'idempotency-key': idempotencyKey,
+      },
+      payload: { username, value },
+    });
+  }
+
   describe('Cadastro de usuários', () => {
     it('cria usuário com saldo inicial e retorna id + username', async () => {
       const response = await context.app.inject({
@@ -133,18 +150,12 @@ describe('Business Rules E2E', () => {
 
   describe('Transferências internas', () => {
     it('debita remetente e credita destinatário — saldo vai de 100 para 90', async () => {
-      const tokenRemetente = await registerAndLogin('remetente');
-      await registerAndLogin('destinatario');
+      const [tokenRemetente] = await Promise.all([
+        registerAndLogin('remetente'),
+        registerAndLogin('destinatario'),
+      ]);
 
-      const transferRes = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${tokenRemetente}`,
-          'idempotency-key': 'remetente:destinatario:10.0000:001',
-        },
-        payload: { username: 'destinatario', value: '10.00' },
-      });
+      const transferRes = await transfer(tokenRemetente, 'destinatario', '10.00', 'remetente:destinatario:10.0000:001');
 
       expect(transferRes.statusCode).toBe(201);
       expect(transferRes.json()).toMatchObject({ value: '10.00' });
@@ -158,28 +169,13 @@ describe('Business Rules E2E', () => {
     });
 
     it('impede double-spend quando a mesma chave de idempotência é reenviada na janela de proteção', async () => {
-      const token = await registerAndLogin('alice');
-      await registerAndLogin('bob');
+      const [token] = await Promise.all([
+        registerAndLogin('alice'),
+        registerAndLogin('bob'),
+      ]);
 
-      const first = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'idempotency-key': 'alice:bob:10.0000:001',
-        },
-        payload: { username: 'bob', value: '10.00' },
-      });
-
-      const second = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'idempotency-key': 'ALICE:BOB:10.0000:001',
-        },
-        payload: { username: 'bob', value: '10.00' },
-      });
+      const first = await transfer(token, 'bob', '10.00', 'alice:bob:10.0000:001');
+      const second = await transfer(token, 'bob', '10.00', 'ALICE:BOB:10.0000:001');
 
       expect(first.statusCode).toBe(201);
       expect(second.statusCode).toBe(409);
@@ -192,18 +188,12 @@ describe('Business Rules E2E', () => {
     });
 
     it('rejeita a transferência quando o saldo for insuficiente', async () => {
-      const token = await registerAndLogin('pobre');
-      await registerAndLogin('rico');
+      const [token] = await Promise.all([
+        registerAndLogin('pobre'),
+        registerAndLogin('rico'),
+      ]);
 
-      const response = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'idempotency-key': 'pobre:rico:999.0000:001',
-        },
-        payload: { username: 'rico', value: '999.00' },
-      });
+      const response = await transfer(token, 'rico', '999.00', 'pobre:rico:999.0000:001');
 
       expect(response.statusCode).toBe(400);
       expect(response.json()).toEqual({
@@ -216,15 +206,7 @@ describe('Business Rules E2E', () => {
     it('rejeita a transferência quando o destinatário não existir', async () => {
       const token = await registerAndLogin('sender');
 
-      const response = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'idempotency-key': 'sender:fantasma:10.0000:001',
-        },
-        payload: { username: 'fantasma', value: '10.00' },
-      });
+      const response = await transfer(token, 'fantasma', '10.00', 'sender:fantasma:10.0000:001');
 
       expect(response.statusCode).toBe(404);
       expect(response.json()).toEqual({
@@ -237,15 +219,7 @@ describe('Business Rules E2E', () => {
     it('rejeita a transferência para a própria conta', async () => {
       const token = await registerAndLogin('narciso');
 
-      const response = await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'idempotency-key': 'narciso:narciso:10.0000:001',
-        },
-        payload: { username: 'narciso', value: '10.00' },
-      });
+      const response = await transfer(token, 'narciso', '10.00', 'narciso:narciso:10.0000:001');
 
       expect(response.statusCode).toBe(400);
     });
@@ -253,18 +227,12 @@ describe('Business Rules E2E', () => {
 
   describe('Histórico financeiro', () => {
     it('lista transações com paginação e filtro por tipo cash-out', async () => {
-      const tokenCarla = await registerAndLogin('carla');
-      await registerAndLogin('davi');
+      const [tokenCarla] = await Promise.all([
+        registerAndLogin('carla'),
+        registerAndLogin('davi'),
+      ]);
 
-      await context.app.inject({
-        method: 'POST',
-        url: '/wallet/transfer',
-        headers: {
-          authorization: `Bearer ${tokenCarla}`,
-          'idempotency-key': 'carla:davi:5.0000:001',
-        },
-        payload: { username: 'davi', value: '5.00' },
-      });
+      await transfer(tokenCarla, 'davi', '5.00', 'carla:davi:5.0000:001');
 
       const response = await context.app.inject({
         method: 'GET',
