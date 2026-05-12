@@ -40,6 +40,10 @@ module.exports = [
     },
     rules: {
       ...nestjsPlugin.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { args: 'none', varsIgnorePattern: '^_' },
+      ],
     },
   },
 ];
