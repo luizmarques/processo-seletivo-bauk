@@ -70,38 +70,13 @@ describe("IdempotencyInterceptor", () => {
     "O header Idempotency-Key é obrigatório para transferências.";
   const transferKey = "janedoe:johndoe:10.0000:123456";
 
-  it("retorna a resposta cacheada sem chamar o handler para chave ja concluida", async () => {
+  it("retorna 409 quando a chave ja foi utilizada na janela de protecao", async () => {
     const redisService = new FakeRedisService();
     const key = IdempotencyKey.fromRaw(transferKey).toString();
     redisService.store.set(
       `idempotency:${key}`,
       JSON.stringify({ id: "tx-1", value: "10.00" }),
     );
-    const interceptor = new IdempotencyInterceptor(redisService as never);
-    const context = createExecutionContext({
-      method: "POST",
-      path: "/wallet/transfer",
-      headers: { "idempotency-key": transferKey },
-    });
-    let handled = false;
-
-    const result = await collectObservableResult(
-      interceptor.intercept(context, {
-        handle: () => {
-          handled = true;
-          return of({ id: "tx-2", value: "99.00" });
-        },
-      } as never),
-    );
-
-    expect(handled).toBe(false);
-    expect(result).toEqual({ id: "tx-1", value: "10.00" });
-  });
-
-  it("retorna 409 para requisicao ainda em processamento", async () => {
-    const redisService = new FakeRedisService();
-    const key = IdempotencyKey.fromRaw(transferKey).toString();
-    redisService.store.set(`idempotency:${key}`, "processing");
     const interceptor = new IdempotencyInterceptor(redisService as never);
     const context = createExecutionContext({
       method: "POST",
@@ -316,7 +291,7 @@ describe("IdempotencyInterceptor", () => {
     );
   });
 
-  it("trata a mesma chave composta com casing diferente como repeticao idempotente", async () => {
+  it("trata a mesma chave composta com casing diferente como repeticao e retorna 409", async () => {
     const redisService = new FakeRedisService();
     const interceptor = new IdempotencyInterceptor(redisService as never);
     const uppercaseKey = transferKey.toUpperCase();
@@ -332,21 +307,25 @@ describe("IdempotencyInterceptor", () => {
       ),
     );
 
-    const secondResult = await collectObservableResult(
-      interceptor.intercept(
-        createExecutionContext({
-          method: "POST",
-          path: "/wallet/transfer",
-          headers: { "idempotency-key": transferKey },
-        }),
-        { handle: () => of({ id: "tx-2" }) } as never,
-      ),
-    );
+    let error: unknown;
+    try {
+      await collectObservableResult(
+        interceptor.intercept(
+          createExecutionContext({
+            method: "POST",
+            path: "/wallet/transfer",
+            headers: { "idempotency-key": transferKey },
+          }),
+          { handle: () => of({ id: "tx-2" }) } as never,
+        ),
+      );
+    } catch (caughtError) {
+      error = caughtError;
+    }
 
-    expect(secondResult).toEqual({ id: "tx-1" });
-    expect(redisService.store.get(`idempotency:${transferKey}`)).toBe(
-      JSON.stringify({ id: "tx-1" }),
-    );
+    expect(error).toMatchObject({
+      response: { message: idempotencyMessage, statusCode: 409 },
+    });
   });
 
   it("usa ttl padrao de 5 segundos quando a variavel de ambiente e invalida", async () => {
