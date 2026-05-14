@@ -14,6 +14,7 @@ import { TransferAmount } from "../../../shared/domain/value-objects/transfer-am
 import { UserId } from "../../../shared/domain/value-objects/user-id";
 import { Username } from "../../../shared/domain/value-objects/username";
 import { TransferExecuted } from "../domain/events/transfer-executed.event";
+import { TransferDomainService } from "../domain/transfer.domain-service";
 import type { TransactionRepository } from "../domain/transaction.repository";
 import type { UserRepository } from "../../users/domain/user.repository";
 
@@ -25,6 +26,7 @@ export class CreateTransferUseCase {
     private readonly transactionRepository: TransactionRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER)
     private readonly eventPublisher: DomainEventPublisher,
+    private readonly transferDomainService: TransferDomainService,
   ) {}
 
   async execute(input: {
@@ -56,10 +58,8 @@ export class CreateTransferUseCase {
       input.senderAccountId,
       recipient.accountId,
       amount,
-      (senderAccount, recipientAccount) => {
-        senderAccount.debit(amount);
-        recipientAccount.credit(amount);
-      },
+      (senderAccount, recipientAccount) =>
+        this.transferDomainService.execute(senderAccount, recipientAccount, amount),
     );
 
     await this.eventPublisher.publish(

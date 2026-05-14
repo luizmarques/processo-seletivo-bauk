@@ -6,6 +6,7 @@ import { Account } from "../domain/account";
 import type { DomainEvent } from "../../../shared/domain/events/domain-event";
 import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import { User } from "../../users/domain/user";
+import { TransferDomainService } from "../domain/transfer.domain-service";
 import { CreateTransferUseCase } from "./create-transfer.use-case";
 
 const senderUserId = "11111111-1111-4111-8111-111111111111";
@@ -91,6 +92,7 @@ describe("CreateTransferUseCase", () => {
       userRepository as never,
       transactionRepository as never,
       eventPublisher as never,
+      new TransferDomainService(),
     );
 
     return { sut, userRepository, transactionRepository, eventPublisher };
