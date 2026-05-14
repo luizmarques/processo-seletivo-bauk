@@ -5,7 +5,7 @@ import {
   USER_REPOSITORY,
 } from "../../../shared/constants/injection-tokens";
 import { AuthenticationError } from "../../../shared/domain/errors/domain.errors";
-import { AccountId } from "../../../shared/domain/value-objects/account-id";
+import { AccountId } from "../../wallet/domain/value-objects/account-id";
 import { PasswordHash } from "../../../shared/domain/value-objects/password-hash";
 import { PlainPassword } from "../../../shared/domain/value-objects/plain-password";
 import { UserId } from "../../../shared/domain/value-objects/user-id";

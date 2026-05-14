@@ -4,7 +4,7 @@ import {
 } from "../../../shared/domain/errors/domain.errors";
 import { Account } from "../domain/account";
 import type { DomainEvent } from "../../../shared/domain/events/domain-event";
-import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "../domain/value-objects/transfer-amount";
 import { User } from "../../users/domain/user";
 import { TransferDomainService } from "../domain/transfer.domain-service";
 import { CreateTransferUseCase } from "./create-transfer.use-case";

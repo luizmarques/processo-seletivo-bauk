@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "./value-objects/transfer-amount";
 import type { Account } from "./account";
 
 @Injectable()

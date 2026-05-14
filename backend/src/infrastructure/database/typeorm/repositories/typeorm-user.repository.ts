@@ -3,7 +3,7 @@ import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, QueryFailedError, Repository } from "typeorm";
 import { User } from "../../../../modules/users/domain/user";
 import { ResourceConflictError } from "../../../../shared/domain/errors/domain.errors";
-import { InitialBalance } from "../../../../shared/domain/value-objects/initial-balance";
+import { InitialBalance } from "../../../../modules/wallet/domain/value-objects/initial-balance";
 import { AccountEntity } from "../entities/account.entity";
 import { UserEntity } from "../entities/user.entity";
 import type { UserRepository } from "../../../../modules/users/domain/user.repository";

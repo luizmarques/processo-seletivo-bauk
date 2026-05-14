@@ -4,7 +4,7 @@ import { Brackets, EntityManager, Repository } from "typeorm";
 import { TransactionRecord } from "../../../../modules/wallet/domain/transaction-record";
 import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
-import type { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "../../../../modules/wallet/domain/value-objects/transfer-amount";
 import { AccountEntity } from "../entities/account.entity";
 import { TransactionEntity } from "../entities/transaction.entity";
 import type {

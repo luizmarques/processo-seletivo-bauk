@@ -1,5 +1,5 @@
-import { Balance } from "../../../shared/domain/value-objects/balance";
-import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import { Balance } from "./value-objects/balance";
+import type { TransferAmount } from "./value-objects/transfer-amount";
 
 export class Account {
   private _balance: Balance;

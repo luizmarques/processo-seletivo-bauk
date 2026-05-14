@@ -5,7 +5,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { REQUIRED_INITIAL_BALANCE } from "../../../../shared/domain/value-objects/initial-balance";
+import { REQUIRED_INITIAL_BALANCE } from "../../../../modules/wallet/domain/value-objects/initial-balance";
 import { TransactionEntity } from "./transaction.entity";
 import { UserEntity } from "./user.entity";
 

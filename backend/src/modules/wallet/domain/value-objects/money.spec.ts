@@ -1,4 +1,4 @@
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { formatMoneyForDisplay } from "./money-format";
 import { Money } from "./money";
 

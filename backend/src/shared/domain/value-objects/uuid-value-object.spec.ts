@@ -1,5 +1,5 @@
 import { ValidationDomainError } from "../errors/domain.errors";
-import { AccountId } from "./account-id";
+import { AccountId } from "../../../modules/wallet/domain/value-objects/account-id";
 import { UserId } from "./user-id";
 
 const VALID_UUID = "11111111-1111-4111-8111-111111111111";

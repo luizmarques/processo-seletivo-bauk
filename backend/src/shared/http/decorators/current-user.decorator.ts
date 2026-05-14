@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { AccountId } from "../../domain/value-objects/account-id";
+import { AccountId } from "../../../modules/wallet/domain/value-objects/account-id";
 import { UserId } from "../../domain/value-objects/user-id";
 import { Username } from "../../domain/value-objects/username";
 

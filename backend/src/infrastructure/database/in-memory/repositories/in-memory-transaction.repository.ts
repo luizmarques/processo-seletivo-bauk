@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { TransactionRecord } from "../../../../modules/wallet/domain/transaction-record";
 import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
-import type { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "../../../../modules/wallet/domain/value-objects/transfer-amount";
 import type {
   PaginatedTransactionRecords,
   TransactionFilters,

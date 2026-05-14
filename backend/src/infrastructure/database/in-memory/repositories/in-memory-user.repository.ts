@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { User } from "../../../../modules/users/domain/user";
-import { InitialBalance } from "../../../../shared/domain/value-objects/initial-balance";
+import { InitialBalance } from "../../../../modules/wallet/domain/value-objects/initial-balance";
 import type { UserRepository } from "../../../../modules/users/domain/user.repository";
 import { InMemoryStore } from "../in-memory-store";
 

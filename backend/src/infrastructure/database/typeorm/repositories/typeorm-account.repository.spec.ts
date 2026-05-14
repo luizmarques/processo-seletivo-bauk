@@ -1,5 +1,5 @@
 import { Account } from "../../../../modules/wallet/domain/account";
-import { Balance } from "../../../../shared/domain/value-objects/balance";
+import { Balance } from "../../../../modules/wallet/domain/value-objects/balance";
 import { AccountEntity } from "../entities/account.entity";
 import { TypeOrmAccountRepository } from "./typeorm-account.repository";
 

@@ -2,7 +2,7 @@ import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { TOKEN_BLOCKLIST } from "../constants/injection-tokens";
-import { AccountId } from "../domain/value-objects/account-id";
+import { AccountId } from "../../modules/wallet/domain/value-objects/account-id";
 import { UserId } from "../domain/value-objects/user-id";
 import { Username } from "../domain/value-objects/username";
 import type { CurrentUser } from "../http/decorators/current-user.decorator";

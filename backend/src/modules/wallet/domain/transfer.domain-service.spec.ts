@@ -1,5 +1,5 @@
 import { ValidationDomainError } from "../../../shared/domain/errors/domain.errors";
-import { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import { TransferAmount } from "./value-objects/transfer-amount";
 import { Account } from "./account";
 import { TransferDomainService } from "./transfer.domain-service";
 

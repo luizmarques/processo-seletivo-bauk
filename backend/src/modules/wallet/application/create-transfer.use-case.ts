@@ -9,8 +9,8 @@ import {
   ValidationDomainError,
 } from "../../../shared/domain/errors/domain.errors";
 import type { DomainEventPublisher } from "../../../shared/domain/events/domain-event-publisher";
-import { formatMoneyForDisplay } from "../../../shared/domain/value-objects/money-format";
-import { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import { formatMoneyForDisplay } from "../domain/value-objects/money-format";
+import { TransferAmount } from "../domain/value-objects/transfer-amount";
 import { UserId } from "../../../shared/domain/value-objects/user-id";
 import { Username } from "../../../shared/domain/value-objects/username";
 import { TransferExecuted } from "../domain/events/transfer-executed.event";

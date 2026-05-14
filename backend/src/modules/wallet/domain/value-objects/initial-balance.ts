@@ -1,5 +1,5 @@
 import type Decimal from "decimal.js";
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { Balance } from "./balance";
 
 export const REQUIRED_INITIAL_BALANCE = "100.0000";

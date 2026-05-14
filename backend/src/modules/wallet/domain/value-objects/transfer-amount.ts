@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 
-export class Money {
+export class TransferAmount {
   private readonly value: Decimal;
 
   constructor(input: Decimal.Value) {
@@ -21,7 +21,7 @@ export class Money {
     return this.value.toFixed(4);
   }
 
-  greaterThan(other: Decimal.Value): boolean {
-    return this.value.greaterThan(other);
+  toDecimal(): Decimal {
+    return this.value;
   }
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, PipeTransform } from "@nestjs/common";
-import { TransferAmount } from "../../domain/value-objects/transfer-amount";
+import { TransferAmount } from "../../../modules/wallet/domain/value-objects/transfer-amount";
 
 const AMOUNT_PATTERN = /^\d+(\.\d{1,4})?$/;
 

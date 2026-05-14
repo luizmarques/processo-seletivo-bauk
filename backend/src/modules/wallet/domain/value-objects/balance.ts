@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { TransferAmount } from "./transfer-amount";
 
 export class Balance {

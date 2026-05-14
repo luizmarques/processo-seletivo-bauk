@@ -1,4 +1,4 @@
-import { REQUIRED_INITIAL_BALANCE } from "../../../../shared/domain/value-objects/initial-balance";
+import { REQUIRED_INITIAL_BALANCE } from "../../../../modules/wallet/domain/value-objects/initial-balance";
 import { AccountEntity } from "../entities/account.entity";
 import { UserEntity } from "../entities/user.entity";
 import { TypeOrmUserRepository } from "./typeorm-user.repository";

@@ -1,5 +1,5 @@
 import type { Account } from "./account";
-import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "./value-objects/transfer-amount";
 import type { PaginatedTransactionRecords } from "./transaction-record";
 export type { PaginatedTransactionRecords };
 

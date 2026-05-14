@@ -1,4 +1,4 @@
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { InitialBalance, REQUIRED_INITIAL_BALANCE } from "./initial-balance";
 
 describe("InitialBalance", () => {

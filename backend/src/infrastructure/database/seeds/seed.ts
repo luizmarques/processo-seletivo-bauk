@@ -8,7 +8,7 @@ import dataSource from "../typeorm/data-source";
 import { AccountEntity } from "../typeorm/entities/account.entity";
 import { TransactionEntity } from "../typeorm/entities/transaction.entity";
 import { UserEntity } from "../typeorm/entities/user.entity";
-import { REQUIRED_INITIAL_BALANCE } from "../../../shared/domain/value-objects/initial-balance";
+import { REQUIRED_INITIAL_BALANCE } from "../../../modules/wallet/domain/value-objects/initial-balance";
 
 const usernames = [
   "janedoe",

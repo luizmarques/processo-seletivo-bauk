@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ACCOUNT_REPOSITORY } from "../../../shared/constants/injection-tokens";
 import { ResourceNotFoundError } from "../../../shared/domain/errors/domain.errors";
-import { AccountId } from "../../../shared/domain/value-objects/account-id";
-import { formatMoneyForDisplay } from "../../../shared/domain/value-objects/money-format";
+import { AccountId } from "../domain/value-objects/account-id";
+import { formatMoneyForDisplay } from "../domain/value-objects/money-format";
 import type { AccountRepository } from "../domain/account.repository";
 
 @Injectable()

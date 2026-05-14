@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { TRANSACTION_REPOSITORY } from "../../../shared/constants/injection-tokens";
-import { AccountId } from "../../../shared/domain/value-objects/account-id";
-import { formatMoneyForDisplay } from "../../../shared/domain/value-objects/money-format";
+import { AccountId } from "../domain/value-objects/account-id";
+import { formatMoneyForDisplay } from "../domain/value-objects/money-format";
 import type { TransactionRepository } from "../domain/transaction.repository";
 
 @Injectable()
