@@ -3,6 +3,7 @@ import {
   ValidationDomainError,
 } from "../../../shared/domain/errors/domain.errors";
 import { Account } from "../domain/account";
+import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import { User } from "../../users/domain/user";
 import { CreateTransferUseCase } from "./create-transfer.use-case";
 
@@ -24,14 +25,6 @@ class FakeTransferUserRepository {
   }
 }
 
-class FakeAccountRepository {
-  public accountsById = new Map<string, Account>();
-
-  async findById(id: string) {
-    return this.accountsById.get(id) ?? null;
-  }
-}
-
 class FakeTransactionRepository {
   public executeTransferCalls: Array<{
     senderAccountId: string;
@@ -40,46 +33,52 @@ class FakeTransactionRepository {
   }> = [];
   public transactionId = "tx-1";
   public error: unknown;
+  public senderBalance = "100.0000";
 
-  async executeTransfer(input: {
-    senderAccountId: string;
-    recipientAccountId: string;
-    value: string;
-  }) {
-    if (this.error) {
-      throw this.error;
-    }
+  async executeTransfer(
+    _senderAccountId: string,
+    _recipientAccountId: string,
+    amount: TransferAmount,
+    perform: (sender: Account, recipient: Account) => void,
+  ) {
+    if (this.error) throw this.error;
 
-    this.executeTransferCalls.push(input);
-    return { id: this.transactionId, value: input.value };
+    // Simula o callback sendo chamado com os saldos armazenados; pode lançar ValidationDomainError.
+    perform(
+      Account.reconstitute(_senderAccountId, this.senderBalance),
+      Account.reconstitute(_recipientAccountId, "50.0000"),
+    );
+
+    this.executeTransferCalls.push({
+      senderAccountId: _senderAccountId,
+      recipientAccountId: _recipientAccountId,
+      value: amount.toString(),
+    });
+
+    return { id: this.transactionId, value: amount.toString() };
   }
 }
 
 describe("CreateTransferUseCase", () => {
   function createSut() {
     const userRepository = new FakeTransferUserRepository();
-    const accountRepository = new FakeAccountRepository();
     const transactionRepository = new FakeTransactionRepository();
 
     userRepository.usersById.set(
       senderUserId,
-      new User(senderUserId, "janedoe", senderAccountId, ""),
+      User.reconstitute(senderUserId, "janedoe", senderAccountId, ""),
     );
     userRepository.usersByUsername.set(
       "johndoe",
-      new User(recipientUserId, "johndoe", recipientAccountId, ""),
+      User.reconstitute(recipientUserId, "johndoe", recipientAccountId, ""),
     );
-    accountRepository.accountsById.set(
-      senderAccountId,
-      new Account(senderAccountId, "100.0000"),
-    );
+
     const sut = new CreateTransferUseCase(
       userRepository as never,
-      accountRepository as never,
       transactionRepository as never,
     );
 
-    return { sut, userRepository, accountRepository, transactionRepository };
+    return { sut, userRepository, transactionRepository };
   }
 
   it("transfere saldo em quatro casas e retorna valor arredondado ao usuario", async () => {
@@ -122,7 +121,7 @@ describe("CreateTransferUseCase", () => {
     const { sut, userRepository, transactionRepository } = createSut();
     userRepository.usersByUsername.set(
       "janedoe",
-      new User(senderUserId, "janedoe", senderAccountId, ""),
+      User.reconstitute(senderUserId, "janedoe", senderAccountId, ""),
     );
 
     let error: unknown;
@@ -142,11 +141,8 @@ describe("CreateTransferUseCase", () => {
   });
 
   it("impede transferencia sem saldo", async () => {
-    const { sut, accountRepository, transactionRepository } = createSut();
-    accountRepository.accountsById.set(
-      senderAccountId,
-      new Account(senderAccountId, "5.0000"),
-    );
+    const { sut, transactionRepository } = createSut();
+    transactionRepository.senderBalance = "5.0000";
 
     let error: unknown;
     try {
@@ -204,27 +200,7 @@ describe("CreateTransferUseCase", () => {
     expect(transactionRepository.executeTransferCalls).toEqual([]);
   });
 
-  it("falha quando a conta remetente nao existe", async () => {
-    const { sut, accountRepository, transactionRepository } = createSut();
-    accountRepository.accountsById.clear();
-
-    let error: unknown;
-    try {
-      await sut.execute({
-        senderUserId,
-        senderAccountId,
-        recipientUsername: "johndoe",
-        value: "10.0000",
-      });
-    } catch (caughtError) {
-      error = caughtError;
-    }
-
-    expect(error).toBeInstanceOf(ResourceNotFoundError);
-    expect(transactionRepository.executeTransferCalls).toEqual([]);
-  });
-
-  it("falha quando a conta destinataria nao existe", async () => {
+  it("falha quando uma conta nao existe na transferencia", async () => {
     const { sut, transactionRepository } = createSut();
     transactionRepository.error = new ResourceNotFoundError(
       "Conta não encontrada.",

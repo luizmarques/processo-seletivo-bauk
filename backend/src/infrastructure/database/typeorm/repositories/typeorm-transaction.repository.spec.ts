@@ -1,4 +1,6 @@
+import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
+import { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
 import { AccountEntity } from "../entities/account.entity";
 import { TransactionEntity } from "../entities/transaction.entity";
 import { TypeOrmTransactionRepository } from "./typeorm-transaction.repository";
@@ -116,15 +118,20 @@ function createListSut(entities: TransactionEntity[], total: number) {
 
 describe("TypeOrmTransactionRepository", () => {
   describe("executeTransfer", () => {
-    it("debita sender, credita recipient, salva ambos e retorna id e valor da transaction", async () => {
+    it("chama perform com accounts carregados, salva novos saldos e insere transaction", async () => {
+      const amount = new TransferAmount("10.0000");
       const { repository, savedAccountBatches, createdTransactions } =
         createTransferSut();
 
-      const result = await repository.executeTransfer({
+      const result = await repository.executeTransfer(
         senderAccountId,
         recipientAccountId,
-        value: "10.0000",
-      });
+        amount,
+        (sender, recipient) => {
+          sender.debit(amount);
+          recipient.credit(amount);
+        },
+      );
 
       expect(result).toEqual({ id: "tx-uuid-1", value: "10.0000" });
       expect(savedAccountBatches).toHaveLength(1);
@@ -141,18 +148,40 @@ describe("TypeOrmTransactionRepository", () => {
       ]);
     });
 
+    it("propaga excecao lancada pelo perform sem salvar", async () => {
+      const amount = new TransferAmount("10.0000");
+      const { repository, savedAccountBatches } = createTransferSut();
+
+      let error: unknown;
+      try {
+        await repository.executeTransfer(
+          senderAccountId,
+          recipientAccountId,
+          amount,
+          () => { throw new Error("erro no perform"); },
+        );
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect((error as Error).message).toBe("erro no perform");
+      expect(savedAccountBatches).toHaveLength(0);
+    });
+
     it("lanca ResourceNotFoundError quando a conta sender nao e encontrada", async () => {
+      const amount = new TransferAmount("10.0000");
       const { repository, savedAccountBatches } = createTransferSut({
         lockedAccounts: [makeAccount(recipientAccountId, "50.0000")],
       });
 
       let error: unknown;
       try {
-        await repository.executeTransfer({
+        await repository.executeTransfer(
           senderAccountId,
           recipientAccountId,
-          value: "10.0000",
-        });
+          amount,
+          () => { throw new Error("perform nao deve ser chamado"); },
+        );
       } catch (caughtError) {
         error = caughtError;
       }
@@ -162,23 +191,48 @@ describe("TypeOrmTransactionRepository", () => {
     });
 
     it("lanca ResourceNotFoundError quando a conta recipient nao e encontrada", async () => {
+      const amount = new TransferAmount("10.0000");
       const { repository, savedAccountBatches } = createTransferSut({
         lockedAccounts: [makeAccount(senderAccountId, "100.0000")],
       });
 
       let error: unknown;
       try {
-        await repository.executeTransfer({
+        await repository.executeTransfer(
           senderAccountId,
           recipientAccountId,
-          value: "10.0000",
-        });
+          amount,
+          () => { throw new Error("perform nao deve ser chamado"); },
+        );
       } catch (caughtError) {
         error = caughtError;
       }
 
       expect(error).toBeInstanceOf(ResourceNotFoundError);
       expect(savedAccountBatches).toHaveLength(0);
+    });
+
+    it("passa Account com saldo correto para o perform", async () => {
+      const amount = new TransferAmount("10.0000");
+      const { repository } = createTransferSut();
+
+      const capturedBalances: { sender: string; recipient: string } = {
+        sender: "",
+        recipient: "",
+      };
+
+      await repository.executeTransfer(
+        senderAccountId,
+        recipientAccountId,
+        amount,
+        (sender, recipient) => {
+          capturedBalances.sender = sender.balance.toString();
+          capturedBalances.recipient = recipient.balance.toString();
+        },
+      );
+
+      expect(capturedBalances.sender).toBe("100.0000");
+      expect(capturedBalances.recipient).toBe("50.0000");
     });
   });
 

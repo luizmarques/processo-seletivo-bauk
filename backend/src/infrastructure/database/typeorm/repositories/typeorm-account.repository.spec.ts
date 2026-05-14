@@ -1,4 +1,5 @@
 import { Account } from "../../../../modules/wallet/domain/account";
+import { Balance } from "../../../../shared/domain/value-objects/balance";
 import { AccountEntity } from "../entities/account.entity";
 import { TypeOrmAccountRepository } from "./typeorm-account.repository";
 
@@ -23,7 +24,8 @@ describe("TypeOrmAccountRepository", () => {
 
     expect(result).toBeInstanceOf(Account);
     expect(result?.id).toBe(accountId);
-    expect(result?.balance).toBe("100.0000");
+    expect(result?.balance).toBeInstanceOf(Balance);
+    expect(result?.balance.toString()).toBe("100.0000");
   });
 
   it("retorna null quando a entidade nao existe", async () => {
