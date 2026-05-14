@@ -9,6 +9,7 @@ import {
 } from "../../shared/constants/injection-tokens";
 import { BcryptPasswordService } from "../../shared/security/bcrypt-password.service";
 import { RegisterUserUseCase } from "./application/register-user.use-case";
+import { UserRegisteredHandler } from "./application/handlers/user-registered.handler";
 import { UsersController } from "./users.controller";
 
 @Module({
@@ -16,6 +17,7 @@ import { UsersController } from "./users.controller";
   controllers: [UsersController],
   providers: [
     RegisterUserUseCase,
+    UserRegisteredHandler,
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
     { provide: PASSWORD_HASHER, useClass: BcryptPasswordService },
   ],

@@ -43,7 +43,7 @@ export class TypeOrmUserRepository implements UserRepository {
       });
 
       const savedUser = await manager.save(user);
-      return this.toUser(savedUser);
+      return User.register(savedUser.id, savedUser.username, savedAccount.id, savedUser.password);
     });
   }
 

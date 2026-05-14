@@ -1,10 +1,15 @@
-export class User {
+import { AggregateRoot } from "../../../shared/domain/aggregate-root";
+import { UserRegistered } from "./events/user-registered.event";
+
+export class User extends AggregateRoot {
   private constructor(
     readonly id: string,
     readonly username: string,
     readonly accountId: string,
     readonly password: string,
-  ) {}
+  ) {
+    super();
+  }
 
   static register(
     id: string,
@@ -12,7 +17,9 @@ export class User {
     accountId: string,
     password: string,
   ): User {
-    return new User(id, username, accountId, password);
+    const user = new User(id, username, accountId, password);
+    user.addDomainEvent(new UserRegistered(id, username, accountId));
+    return user;
   }
 
   static reconstitute(
