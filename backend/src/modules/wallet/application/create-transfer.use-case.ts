@@ -11,8 +11,8 @@ import {
 import type { DomainEventPublisher } from "../../../shared/domain/events/domain-event-publisher";
 import { formatMoneyForDisplay } from "../domain/value-objects/money-format";
 import { TransferAmount } from "../domain/value-objects/transfer-amount";
-import { UserId } from "../../../shared/domain/value-objects/user-id";
-import { Username } from "../../../shared/domain/value-objects/username";
+import { UserId } from "../../users/domain/value-objects/user-id";
+import { Username } from "../../users/domain/value-objects/username";
 import { TransferExecuted } from "../domain/events/transfer-executed.event";
 import { TransferDomainService } from "../domain/transfer.domain-service";
 import type { TransactionRepository } from "../domain/transaction.repository";

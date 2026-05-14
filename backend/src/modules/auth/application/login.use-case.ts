@@ -6,10 +6,10 @@ import {
 } from "../../../shared/constants/injection-tokens";
 import { AuthenticationError } from "../../../shared/domain/errors/domain.errors";
 import { AccountId } from "../../wallet/domain/value-objects/account-id";
-import { PasswordHash } from "../../../shared/domain/value-objects/password-hash";
-import { PlainPassword } from "../../../shared/domain/value-objects/plain-password";
-import { UserId } from "../../../shared/domain/value-objects/user-id";
-import { Username } from "../../../shared/domain/value-objects/username";
+import { PasswordHash } from "../../users/domain/value-objects/password-hash";
+import { PlainPassword } from "../../users/domain/value-objects/plain-password";
+import { UserId } from "../../users/domain/value-objects/user-id";
+import { Username } from "../../users/domain/value-objects/username";
 import type { PasswordHasher } from "../../../shared/security/bcrypt-password.service";
 import type { TokenService } from "../../../shared/security/jwt-token.service";
 import type { UserRepository } from "../../users/domain/user.repository";

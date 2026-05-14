@@ -6,8 +6,8 @@ import {
 } from "../../../shared/constants/injection-tokens";
 import { ResourceConflictError } from "../../../shared/domain/errors/domain.errors";
 import type { DomainEventPublisher } from "../../../shared/domain/events/domain-event-publisher";
-import { PlainPassword } from "../../../shared/domain/value-objects/plain-password";
-import { Username } from "../../../shared/domain/value-objects/username";
+import { PlainPassword } from "../domain/value-objects/plain-password";
+import { Username } from "../domain/value-objects/username";
 import type { PasswordHasher } from "../../../shared/security/bcrypt-password.service";
 import type { UserRepository } from "../domain/user.repository";
 

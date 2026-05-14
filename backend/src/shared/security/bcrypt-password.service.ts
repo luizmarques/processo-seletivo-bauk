@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
-import { PasswordHash } from "../domain/value-objects/password-hash";
-import { PlainPassword } from "../domain/value-objects/plain-password";
+import { PasswordHash } from "../../modules/users/domain/value-objects/password-hash";
+import { PlainPassword } from "../../modules/users/domain/value-objects/plain-password";
 
 export interface PasswordHasher {
   hash(value: PlainPassword): Promise<PasswordHash>;

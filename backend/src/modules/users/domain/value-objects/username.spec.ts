@@ -1,4 +1,4 @@
-import { ResourceConflictError, ValidationDomainError } from "../errors/domain.errors";
+import { ResourceConflictError, ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { Username } from "./username";
 
 describe("Username", () => {

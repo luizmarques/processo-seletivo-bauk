@@ -3,8 +3,8 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { TOKEN_BLOCKLIST } from "../constants/injection-tokens";
 import { AccountId } from "../../modules/wallet/domain/value-objects/account-id";
-import { UserId } from "../domain/value-objects/user-id";
-import { Username } from "../domain/value-objects/username";
+import { UserId } from "../../modules/users/domain/value-objects/user-id";
+import { Username } from "../../modules/users/domain/value-objects/username";
 import type { CurrentUser } from "../http/decorators/current-user.decorator";
 import type { TokenBlocklist } from "./token-blocklist";
 

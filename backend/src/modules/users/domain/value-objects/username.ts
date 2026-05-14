@@ -1,7 +1,7 @@
 import {
   ResourceConflictError,
   ValidationDomainError,
-} from "../errors/domain.errors";
+} from "../../../../shared/domain/errors/domain.errors";
 
 export class Username {
   private readonly value: string;

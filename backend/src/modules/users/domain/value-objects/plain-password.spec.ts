@@ -1,4 +1,4 @@
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { PlainPassword } from "./plain-password";
 
 describe("PlainPassword", () => {

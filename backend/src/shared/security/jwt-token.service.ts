@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AccountId } from "../../modules/wallet/domain/value-objects/account-id";
-import { UserId } from "../domain/value-objects/user-id";
-import { Username } from "../domain/value-objects/username";
+import { UserId } from "../../modules/users/domain/value-objects/user-id";
+import { Username } from "../../modules/users/domain/value-objects/username";
 
 export interface TokenPayload {
   sub: UserId;

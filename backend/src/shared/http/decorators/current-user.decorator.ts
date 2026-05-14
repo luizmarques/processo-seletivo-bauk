@@ -1,7 +1,7 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 import { AccountId } from "../../../modules/wallet/domain/value-objects/account-id";
-import { UserId } from "../../domain/value-objects/user-id";
-import { Username } from "../../domain/value-objects/username";
+import { UserId } from "../../../modules/users/domain/value-objects/user-id";
+import { Username } from "../../../modules/users/domain/value-objects/username";
 
 export interface CurrentUser {
   userId: UserId;

@@ -1,4 +1,4 @@
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$.{53}$/;
 

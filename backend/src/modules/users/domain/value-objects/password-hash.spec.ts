@@ -1,4 +1,4 @@
-import { ValidationDomainError } from "../errors/domain.errors";
+import { ValidationDomainError } from "../../../../shared/domain/errors/domain.errors";
 import { PasswordHash } from "./password-hash";
 
 const VALID_HASH_2A = "$2a$10$7EqJtq98hPqEX7fNZaFWoOhiB0JzZMfjNV8iPBUFeCFGXFq8iDS.e";
