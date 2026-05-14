@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AccountId } from "../domain/value-objects/account-id";
@@ -23,6 +24,7 @@ export class JwtTokenService implements TokenService {
       sub: payload.sub.toString(),
       username: payload.username.toString(),
       accountId: payload.accountId.toString(),
+      jti: randomUUID(),
     });
   }
 }

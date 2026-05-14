@@ -5,3 +5,4 @@ export const PASSWORD_HASHER = Symbol("PASSWORD_HASHER");
 export const TOKEN_SERVICE = Symbol("TOKEN_SERVICE");
 export const IDEMPOTENCY_STORE = Symbol("IDEMPOTENCY_STORE");
 export const DOMAIN_EVENT_PUBLISHER = Symbol("DOMAIN_EVENT_PUBLISHER");
+export const TOKEN_BLOCKLIST = Symbol("TOKEN_BLOCKLIST");

@@ -3,6 +3,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth.controller";
 import { LoginUseCase } from "./application/login.use-case";
+import { LogoutUseCase } from "./application/logout.use-case";
 import { UsersModule } from "../users/users.module";
 import { TOKEN_SERVICE } from "../../shared/constants/injection-tokens";
 import { JwtTokenService } from "../../shared/security/jwt-token.service";
@@ -20,6 +21,7 @@ import { JwtStrategy } from "../../shared/auth/jwt.strategy";
   controllers: [AuthController],
   providers: [
     LoginUseCase,
+    LogoutUseCase,
     JwtStrategy,
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },
   ],

@@ -7,6 +7,8 @@ export interface CurrentUser {
   userId: UserId;
   username: Username;
   accountId: AccountId;
+  jti: string;
+  exp: number;
 }
 
 export const CurrentUserDecorator = createParamDecorator(

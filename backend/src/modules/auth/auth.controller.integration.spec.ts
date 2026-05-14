@@ -87,15 +87,30 @@ describe("Auth HTTP Integration", () => {
     expect(context.loginUseCase.calls).toEqual([]);
   });
 
-  it("POST /auth/logout responde mensagem estatica do controller", async () => {
+  it("POST /auth/logout invalida o token no servidor e retorna confirmacao", async () => {
     const response = await context.app.inject({
       method: "POST",
       url: "/auth/logout",
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      message: "Logout realizado no cliente com remocao do token.",
+    expect(response.json()).toEqual({ message: "Logout realizado com sucesso." });
+    expect(context.logoutUseCase.calls).toHaveLength(1);
+    expect(context.logoutUseCase.calls[0]).toEqual({
+      jti: "test-jti",
+      expiresAt: expect.any(Number),
     });
+  });
+
+  it("POST /auth/logout retorna 401 sem token valido", async () => {
+    context.setAuthenticatedUser(null);
+
+    const response = await context.app.inject({
+      method: "POST",
+      url: "/auth/logout",
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(context.logoutUseCase.calls).toHaveLength(0);
   });
 });

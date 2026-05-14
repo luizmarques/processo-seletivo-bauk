@@ -10,6 +10,7 @@ import {
 import { Test } from "@nestjs/testing";
 import { AuthController } from "./auth/auth.controller";
 import { LoginUseCase } from "./auth/application/login.use-case";
+import { LogoutUseCase } from "./auth/application/logout.use-case";
 import { UsersController } from "./users/users.controller";
 import { RegisterUserUseCase } from "./users/application/register-user.use-case";
 import { WalletController } from "./wallet/wallet.controller";
@@ -40,6 +41,21 @@ export class FakeRegisterUserUseCase {
     this.result = { id: "user-1", username: "janedoe" };
     this.error = null;
     this.calls = [];
+  }
+}
+
+export class FakeLogoutUseCase {
+  public calls: Array<{ jti: string; expiresAt: number }> = [];
+  public error: Error | null = null;
+
+  async execute(input: { jti: string; expiresAt: number }) {
+    this.calls.push(input);
+    if (this.error) throw this.error;
+  }
+
+  reset(): void {
+    this.calls = [];
+    this.error = null;
   }
 }
 
@@ -195,6 +211,8 @@ class TestJwtAuthGuard implements CanActivate {
     userId: "user-1",
     username: "janedoe",
     accountId: "acc-1",
+    jti: "test-jti",
+    exp: Math.floor(Date.now() / 1000) + 86400,
   };
 
   canActivate(context: ExecutionContext): boolean {
@@ -212,12 +230,13 @@ export type HttpTestAppContext = {
   app: NestFastifyApplication;
   registerUserUseCase: FakeRegisterUserUseCase;
   loginUseCase: FakeLoginUseCase;
+  logoutUseCase: FakeLogoutUseCase;
   createTransferUseCase: FakeCreateTransferUseCase;
   getBalanceUseCase: FakeGetBalanceUseCase;
   listTransactionsUseCase: FakeListTransactionsUseCase;
   redisService: FakeRedisService;
   setAuthenticatedUser(
-    user: { userId: string; username: string; accountId: string } | null,
+    user: { userId: string; username: string; accountId: string; jti?: string; exp?: number } | null,
   ): void;
   reset(): void;
   close(): Promise<void>;
@@ -226,6 +245,7 @@ export type HttpTestAppContext = {
 export async function createHttpTestApp(): Promise<HttpTestAppContext> {
   const registerUserUseCase = new FakeRegisterUserUseCase();
   const loginUseCase = new FakeLoginUseCase();
+  const logoutUseCase = new FakeLogoutUseCase();
   const createTransferUseCase = new FakeCreateTransferUseCase();
   const getBalanceUseCase = new FakeGetBalanceUseCase();
   const listTransactionsUseCase = new FakeListTransactionsUseCase();
@@ -237,6 +257,7 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
       IdempotencyInterceptor,
       { provide: RegisterUserUseCase, useValue: registerUserUseCase },
       { provide: LoginUseCase, useValue: loginUseCase },
+      { provide: LogoutUseCase, useValue: logoutUseCase },
       { provide: CreateTransferUseCase, useValue: createTransferUseCase },
       { provide: GetBalanceUseCase, useValue: getBalanceUseCase },
       { provide: ListTransactionsUseCase, useValue: listTransactionsUseCase },
@@ -259,6 +280,7 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
     app,
     registerUserUseCase,
     loginUseCase,
+    logoutUseCase,
     createTransferUseCase,
     getBalanceUseCase,
     listTransactionsUseCase,
@@ -266,12 +288,17 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
     setAuthenticatedUser(user) {
       TestJwtAuthGuard.shouldAllow = user !== null;
       if (user) {
-        TestJwtAuthGuard.user = { ...user };
+        TestJwtAuthGuard.user = {
+          jti: "test-jti",
+          exp: Math.floor(Date.now() / 1000) + 86400,
+          ...user,
+        };
       }
     },
     reset() {
       registerUserUseCase.reset();
       loginUseCase.reset();
+      logoutUseCase.reset();
       createTransferUseCase.reset();
       getBalanceUseCase.reset();
       listTransactionsUseCase.reset();
@@ -281,6 +308,8 @@ export async function createHttpTestApp(): Promise<HttpTestAppContext> {
         userId: "user-1",
         username: "janedoe",
         accountId: "acc-1",
+        jti: "test-jti",
+        exp: Math.floor(Date.now() / 1000) + 86400,
       };
     },
     async close() {

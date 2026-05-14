@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
   ValidationPipe,
 } from "@nestjs/common";
 import {
@@ -15,14 +16,21 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { Throttle, SkipThrottle } from "@nestjs/throttler";
+import { JwtAuthGuard } from "../../shared/auth/jwt-auth.guard";
+import { CurrentUserDecorator } from "../../shared/http/decorators/current-user.decorator";
+import type { CurrentUser } from "../../shared/http/decorators/current-user.decorator";
 import { requestValidationOptions } from "../../shared/http/pipes/request-validation-options";
 import { LoginUseCase } from "./application/login.use-case";
+import { LogoutUseCase } from "./application/logout.use-case";
 import { LoginDto } from "./dto/login.dto";
 
 @ApiTags("auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly loginUseCase: LoginUseCase) {}
+  constructor(
+    private readonly loginUseCase: LoginUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
+  ) {}
 
   @Post("login")
   @HttpCode(HttpStatus.OK)
@@ -47,22 +55,25 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post("logout")
   @HttpCode(HttpStatus.OK)
   @SkipThrottle()
   @ApiOperation({
-    summary:
-      "Encerra a sessão no cliente. O backend retorna apenas uma mensagem informativa.",
+    summary: "Invalida o token JWT no servidor e encerra a sessão.",
   })
   @ApiOkResponse({
-    description: "Logout informado com sucesso.",
-    schema: {
-      example: {
-        message: "Logout realizado no cliente com remocao do token.",
-      },
-    },
+    description: "Logout realizado com sucesso.",
+    schema: { example: { message: "Logout realizado com sucesso." } },
   })
-  logout(): { message: string } {
-    return { message: "Logout realizado no cliente com remocao do token." };
+  @ApiUnauthorizedResponse({ description: "Token ausente ou inválido." })
+  async logout(
+    @CurrentUserDecorator() currentUser: CurrentUser,
+  ): Promise<{ message: string }> {
+    await this.logoutUseCase.execute({
+      jti: currentUser.jti,
+      expiresAt: currentUser.exp,
+    });
+    return { message: "Logout realizado com sucesso." };
   }
 }
