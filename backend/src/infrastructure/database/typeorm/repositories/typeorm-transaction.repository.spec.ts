@@ -1,4 +1,3 @@
-import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
 import { TransferAmount } from "../../../../modules/wallet/domain/value-objects/transfer-amount";
 import { AccountEntity } from "../entities/account.entity";
