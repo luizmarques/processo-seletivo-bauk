@@ -1,3 +1,5 @@
+import type { Account } from "./account";
+import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import type { PaginatedTransactionRecords } from "./transaction-record";
 export type { PaginatedTransactionRecords };
 
@@ -12,11 +14,12 @@ export interface TransactionFilters {
 }
 
 export interface TransactionRepository {
-  executeTransfer(input: {
-    senderAccountId: string;
-    recipientAccountId: string;
-    value: string;
-  }): Promise<{ id: string; value: string }>;
+  executeTransfer(
+    senderAccountId: string,
+    recipientAccountId: string,
+    amount: TransferAmount,
+    perform: (sender: Account, recipient: Account) => void,
+  ): Promise<{ id: string; value: string }>;
   listByAccount(filters: TransactionFilters): Promise<PaginatedTransactionRecords>;
   count(): Promise<number>;
 }
