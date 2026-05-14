@@ -10,378 +10,442 @@ Aplicação de carteira digital full-stack composta por um backend NestJS e um f
 
 ### O que a aplicação implementa
 
-A aplicação **não é DDD puro**, **não é Arquitetura Hexagonal pura**, mas é uma **Clean Architecture bem estruturada com padrões inspirados em DDD**.
+A aplicação é uma **Clean Architecture com DDD tático aplicado**: Value Objects ricos, Aggregate Roots com Domain Events, Domain Services e Repository Interfaces como portas do domínio. Não é DDD estratégico completo (sem Bounded Contexts formalizados, sem linguagem ubíqua explícita), mas os padrões táticos essenciais estão presentes e corretos.
 
 | Padrão | Status | Evidência |
 |--------|--------|-----------|
-| Clean Architecture (camadas) | ✅ Implementado | Use Cases, Domain, Infrastructure claramente separados |
-| Value Objects (DDD) | ✅ Implementado | `Money`, `Balance`, `Username`, `PlainPassword`, etc. |
-| Repository Interface (Port) | ✅ Implementado | Interfaces no domínio, implementações na infra |
-| Domain Errors (DDD) | ✅ Implementado | Hierarquia `DomainError` → filtro HTTP |
-| Aggregate Roots (DDD) | ❌ Ausente | Sem agregados formais; entidades são POJO |
-| Domain Events (DDD) | ❌ Ausente | Sem eventos de domínio |
-| Domain Services (DDD) | ❌ Ausente | Lógica de transferência vaza para o repositório |
+| Clean Architecture (camadas) | ✅ | Use Cases, Domain, Infrastructure separados; Dependency Rule respeitada |
+| Value Objects (DDD) | ✅ | VOs ricos, auto-validantes, co-localizados em cada módulo |
+| Aggregate Roots (DDD) | ✅ | `User` estende `AggregateRoot`; coleta e publica Domain Events |
+| Domain Events (DDD) | ✅ | `UserRegistered`, `TransferExecuted`; publisher, handlers, registry em-memória |
+| Domain Services (DDD) | ✅ | `TransferDomainService` encapsula debit/credit de múltiplos agregados |
+| Repository Interfaces (Port) | ✅ | Interfaces no domínio, implementações na infra; tokens de DI desacoplam |
+| Domain Errors | ✅ | Hierarquia `DomainError` → `DomainExceptionFilter` mapeia para HTTP |
 | Bounded Contexts (DDD) | Parcial | Módulos auth/users/wallet sugerem contextos mas não são formalizados |
-| Primary/Secondary Ports (Hexagonal) | Parcial | Repositórios são portas secundárias; as primárias (controllers) não são abstraídas |
+| Primary/Secondary Ports (Hexagonal) | Parcial | Repositórios são portas secundárias; controllers não são abstraídos |
 
 ---
 
 ## 2. Estrutura em Camadas
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  HTTP Layer (Controllers, Pipes, Guards, Interceptors) │
-│  auth.controller · users.controller · wallet.controller│
-└────────────────────┬────────────────────────────────┘
-                     │ delega para
-┌────────────────────▼────────────────────────────────┐
-│  Application Layer (Use Cases)                        │
-│  LoginUseCase · RegisterUserUseCase                   │
-│  GetBalanceUseCase · CreateTransferUseCase            │
-│  ListTransactionsUseCase                              │
-└────────────────────┬────────────────────────────────┘
-                     │ depende de interfaces de
-┌────────────────────▼────────────────────────────────┐
-│  Domain Layer                                         │
-│  Entities: User · Account · TransactionRecord         │
-│  Value Objects: Money · Balance · Username · …        │
-│  Interfaces: UserRepository · AccountRepository       │
-│              TransactionRepository                    │
-│  Errors: ValidationDomainError · AuthenticationError │
-│          ResourceConflictError · ResourceNotFoundError│
-└────────────────────┬────────────────────────────────┘
-                     │ implementado por
-┌────────────────────▼────────────────────────────────┐
-│  Infrastructure Layer                                 │
-│  TypeORM Repositories (PostgreSQL)                    │
-│  In-Memory Repositories (testes)                      │
-│  RedisService · BcryptPasswordService · JwtTokenService│
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  HTTP Layer                                                  │
+│  auth.controller · users.controller · wallet.controller      │
+│  JwtAuthGuard · IdempotencyInterceptor · DomainExceptionFilter│
+│  TransferAmountPipe · TransactionsFilterPipe                 │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ delega para
+┌─────────────────────▼───────────────────────────────────────┐
+│  Application Layer (Use Cases)                               │
+│  LoginUseCase · LogoutUseCase · RegisterUserUseCase          │
+│  GetBalanceUseCase · CreateTransferUseCase                   │
+│  ListTransactionsUseCase                                     │
+│  Handlers: UserRegisteredHandler · TransferAuditHandler      │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ depende de interfaces de
+┌─────────────────────▼───────────────────────────────────────┐
+│  Domain Layer (co-localizado por módulo)                     │
+│                                                              │
+│  modules/users/domain/                                       │
+│    User (AggregateRoot) · UserRegistered (DomainEvent)       │
+│    UserId · Username · PlainPassword · PasswordHash          │
+│    UserRepository (interface)                                │
+│                                                              │
+│  modules/wallet/domain/                                      │
+│    Account · TransferDomainService                           │
+│    TransferExecuted (DomainEvent)                            │
+│    AccountId · Balance · TransferAmount · InitialBalance     │
+│    AccountRepository · TransactionRepository (interfaces)    │
+│                                                              │
+│  shared/domain/                                              │
+│    AggregateRoot · DomainError hierarchy · DomainEvent       │
+│    UuidValueObject (base genérica)                           │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ implementado por
+┌─────────────────────▼───────────────────────────────────────┐
+│  Infrastructure Layer                                        │
+│  TypeORM Repositories + Entities (PostgreSQL)                │
+│  In-Memory Repositories (testes E2E e integração)            │
+│  RedisService · BcryptPasswordService · JwtTokenService      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-A **Dependency Rule** da Clean Architecture é respeitada: o domínio não importa nada de infraestrutura. Use cases dependem apenas de interfaces. Isso é o ponto mais sólido do projeto.
+A **Dependency Rule** é respeitada integralmente: domínio não importa infraestrutura, use cases dependem apenas de interfaces, repositórios concretos conhecem apenas entidades de domínio.
 
 ---
 
-## 3. Fluxos Detalhados
+## 3. Value Objects — Co-localização por Módulo
 
-### 3.1 Cadastro de Usuário (`POST /users`)
+Os Value Objects vivem junto ao domínio que os possui, eliminando o acoplamento de shared para conceitos específicos de negócio.
 
-```
-Client
-  │
-  ▼
-UsersController.register(dto)
-  │  valida DTO com class-validator (username, password)
-  ▼
-RegisterUserUseCase.execute(username, password)
-  │  1. Username.create(username)          → lança ValidationDomainError se inválido
-  │  2. PlainPassword.create(password)     → lança ValidationDomainError se fraca
-  │  3. userRepository.findByUsername()    → lança ResourceConflictError se existe
-  │  4. bcryptService.hash(password)       → retorna PasswordHash
-  │  5. userRepository.createWithAccount() → cria User + Account em transação
-  │     └─ conta criada com InitialBalance("100.0000")
-  ▼
-Controller retorna 201 Created (sem body)
-```
+### `modules/users/domain/value-objects/`
 
-**Ponto de atenção**: o passo 3 (verificar username) e o passo 5 (inserir) não são atômicos fora do banco. Há uma janela de race condition; dois requests simultâneos com o mesmo username passariam pelo check e chegariam ao INSERT. O banco tem `UNIQUE` constraint, mas a exceção do TypeORM não seria capturada como `ResourceConflictError` — chegaria como erro 500 ao cliente.
+| VO | Invariante principal |
+|----|----------------------|
+| `UserId` | UUID v4 válido; estende `UuidValueObject` |
+| `Username` | ≥ 3 chars; normalizado (trim + lowercase) |
+| `PlainPassword` | ≥ 8 chars, 1 maiúscula, 1 número |
+| `PasswordHash` | Regex bcrypt `$2[aby]$dd$...` |
 
----
+### `modules/wallet/domain/value-objects/`
 
-### 3.2 Login (`POST /auth/login`)
+| VO | Invariante principal |
+|----|----------------------|
+| `AccountId` | UUID v4 válido; estende `UuidValueObject` |
+| `Balance` | `NUMERIC(20,4)`, ≥ 0; operações `debit()` / `credit()` retornam novo `Balance` |
+| `TransferAmount` | > 0, máximo 4 casas decimais |
+| `InitialBalance` | Sempre `"100.0000"` — constante tipada |
+| `money-format` | Função `formatMoneyForDisplay()` — arredondamento bancário para 2 casas |
 
-```
-Client
-  │
-  ▼
-AuthController.login(dto)
-  ▼
-LoginUseCase.execute(username, password)
-  │  1. Username.create(username)
-  │  2. userRepository.findByUsername()    → lança AuthenticationError se não existe
-  │  3. bcryptService.compare(pwd, hash)   → lança AuthenticationError se inválida
-  │  4. jwtService.sign({ sub, username, accountId })
-  ▼
-Controller retorna { token, username }
-```
+### `shared/domain/value-objects/`
 
-O JWT carrega `userId`, `username` e `accountId` — evitando buscas extras no banco a cada request autenticado.
+Apenas `UuidValueObject` (abstração genuinamente genérica, base de `UserId` e `AccountId`).
 
 ---
 
-### 3.3 Transferência (`POST /wallet/transfer`)
+## 4. Aggregate Root e Domain Events
 
-Este é o fluxo mais complexo e usa dois mecanismos de proteção sobrepostos.
-
-```
-Client (envia Idempotency-Key: <uuid>)
-  │
-  ▼
-JwtAuthGuard → extrai CurrentUser do token
-  │
-  ▼
-IdempotencyInterceptor (pre-handler)
-  │  1. Lê header Idempotency-Key (obrigatório)
-  │  2. Normaliza (lowercase, trim)
-  │  3. Redis SET NX com TTL=5s
-  │     └─ Se chave já existe → lança ResourceConflictError (409)
-  │
-  ▼
-TransferAmountPipe → converte string "10.50" para Decimal
-  │
-  ▼
-WalletController.transfer(dto, currentUser)
-  │
-  ▼
-CreateTransferUseCase.execute(senderAccountId, recipientUsername, value)
-  │  1. TransferAmount.create(value)           → valida valor > 0, max 4 decimais
-  │  2. userRepository.findByUsername(recipient)→ lança ResourceNotFoundError se não existe
-  │  3. Verifica self-transfer                 → lança ValidationDomainError
-  │  4. transactionRepository.executeTransfer()→ executa atômico no banco:
-  │     a. Abre transação PostgreSQL
-  │     b. Bloqueia Account(senderId) e Account(recipientId) com LOCK PESSIMISTIC_WRITE
-  │        └─ sempre na ordem menor_id → maior_id para evitar deadlock
-  │     c. Carrega saldo do remetente
-  │     d. account.ensureCanDebit(amount)       → lança ValidationDomainError se insuficiente
-  │     e. Decrementa balance do remetente
-  │     f. Incrementa balance do destinatário
-  │     g. Insere registro na tabela transactions
-  │     h. Commit
-  │
-  ▼
-IdempotencyInterceptor (post-handler)
-  │  Armazena resposta no Redis com TTL
-  │
-  ▼
-Controller retorna 201 Created
-```
-
-**Problema**: o interceptor de idempotência armazena a resposta após a execução, mas em uma requisição duplicada dentro do TTL retorna **409 Conflict**, não a resposta original cacheada. Isso não é idempotência completa — é apenas deduplicação por janela de tempo.
-
----
-
-### 3.4 Consulta de Saldo (`GET /wallet/balance`)
-
-```
-JwtAuthGuard → CurrentUser.accountId
-  │
-  ▼
-GetBalanceUseCase.execute(accountId)
-  │  1. accountRepository.findById()
-  │  2. formatMoneyForDisplay(balance) → arredondamento bancário para 2 casas
-  ▼
-{ balance: "100.00" }
-```
-
----
-
-### 3.5 Histórico de Transações (`GET /wallet/transactions`)
-
-```
-JwtAuthGuard → CurrentUser.accountId
-TransactionsFilterPipe → valida e normaliza query params
-  │
-  ▼
-ListTransactionsUseCase.execute(accountId, filters)
-  │  transactionRepository.listByAccount({
-  │    accountId, page, limit, type, startDate, endDate, order
-  │  })
-  │  └─ consulta por (debitedAccountId OR creditedAccountId)
-  │  └─ classifica cada transação como cash-in ou cash-out
-  ▼
-{ data: [...], total, page, limit }
-```
-
----
-
-## 4. Padrões Bem Executados
-
-### 4.1 Value Objects ricos e auto-validantes
-
-Cada Value Object valida no construtor e lança `ValidationDomainError` com mensagem em pt-BR. São imutáveis e expressam claramente as invariantes do domínio.
+### AggregateRoot (`shared/domain/aggregate-root.ts`)
 
 ```typescript
-// Money não aceita valor zero nem negativo
-// Balance tem métodos debit/credit que retornam novos Balance
-// Username normaliza (lowercase + trim) antes de armazenar
+abstract class AggregateRoot {
+  // _domainEvents é non-enumerable: não interfere em .toEqual() nos testes
+  protected addDomainEvent(event: DomainEvent): void
+  collectDomainEvents(): DomainEvent[]  // retorna e limpa a lista
+}
 ```
 
-### 4.2 Separação entre erro de domínio e resposta HTTP
+### User (único Aggregate Root atual)
 
-`DomainExceptionFilter` é um mapa declarativo. Controllers nunca lançam HTTP exceptions — apenas Use Cases lançam erros de domínio. Isso mantém a lógica de negócio agnóstica ao protocolo.
+```typescript
+class User extends AggregateRoot {
+  static register(id, username, accountId, password): User
+    // → adiciona UserRegistered ao registro interno
 
-### 4.3 Tokens de injeção de dependência
+  static reconstitute(id, username, accountId, password): User
+    // → sem evento (reconstituição, não criação)
 
-`shared/constants/injection-tokens.ts` define símbolos que desacoplam os Use Cases de qualquer implementação concreta. Trocar TypeORM por outro ORM exige apenas mudar os módulos NestJS, sem tocar em use cases.
+  hasSameAccountAs(other: User): boolean
+}
+```
 
-### 4.4 Fábrica de aplicação de teste HTTP
+### Domain Events
 
-`http-test-app.factory.ts` cria uma aplicação Fastify real com repositórios fake. Isso permite testar controllers, interceptors, pipes e filtros sem banco de dados, sem mocks frágeis de módulo.
+| Evento | Módulo | Payload | Handler |
+|--------|--------|---------|---------|
+| `UserRegistered` | users | `userId`, `username`, `accountId` | `UserRegisteredHandler` (log) |
+| `TransferExecuted` | wallet | `transactionId`, `senderAccountId`, `recipientAccountId`, `amount` | `TransferAuditHandler` (log) |
 
-### 4.5 Atomicidade da transferência com locks pessimistas
+### Publisher
 
-Os locks são adquiridos sempre em ordem crescente de ID, eliminando a possibilidade de deadlock clássico entre dois transfers simultâneos em sentidos opostos.
+`NestDomainEventPublisher` mantém um registry em-memória `Map<eventName, DomainEventHandler[]>`. Handlers registram-se via `OnModuleInit`. A publicação invoca handlers em paralelo (`Promise.all`).
 
----
-
-## 5. Problemas Identificados
-
-### P1 — Lógica de negócio dentro do repositório (crítico de design)
-
-**Arquivo**: `infrastructure/database/typeorm/repositories/typeorm-transaction.repository.ts`
-
-O método `executeTransfer` não é uma operação de persistência — ele contém lógica de negócio: verificar saldo, debitar, creditar. Isso viola o princípio de que repositórios são abstrações de persistência.
-
-**Consequência**: os repositórios in-memory precisam duplicar a mesma lógica de negócio. Se a regra de transferência mudar (ex.: adicionar taxa), ela precisa ser atualizada em dois lugares.
-
-**O que deveria acontecer**: o `CreateTransferUseCase` deveria orquestrar: buscar contas, aplicar lógica de domínio, e depois chamar o repositório apenas para persistir o resultado.
+`EventsModule` é `@Global()` — exporta `DOMAIN_EVENT_PUBLISHER` e `NestDomainEventPublisher` para todos os módulos sem importação explícita.
 
 ---
 
-### P2 — Use Case delega demais ao repositório (consequência do P1)
+## 5. Domain Service — Transferência
 
-**Arquivo**: `modules/wallet/application/create-transfer.use-case.ts`
+`TransferDomainService` encapsula a invariante de negócio que envolve dois agregados distintos:
 
-O use case faz validações superficiais (verifica se destinatário existe, previne auto-transferência) mas delega a verificação de saldo e a execução financeira para o repositório. O use case deveria ser o orquestrador do fluxo.
+```typescript
+@Injectable()
+export class TransferDomainService {
+  execute(sender: Account, recipient: Account, amount: TransferAmount): void {
+    sender.debit(amount);    // Balance.debit() → lança ValidationDomainError se insuficiente
+    recipient.credit(amount);
+  }
+}
+```
+
+`Account.debit()` e `Account.credit()` atualizam `_balance` internamente via `Balance.debit()` e `Balance.credit()`. A validação de saldo (`ensureCanDebit`) ocorre dentro de `Balance.debit()` — no domínio, não no repositório.
+
+O `TypeOrmTransactionRepository.executeTransfer()` recebe um callback `perform` que é preenchido pelo use case com a chamada ao `TransferDomainService`. O repositório cuida apenas da infraestrutura transacional (locks, updates, inserts).
 
 ---
 
-### P3 — Idempotência incompleta
+## 6. Autenticação e Invalidação de Logout
+
+### Fluxo de emissão (Login)
+
+`JwtTokenService.sign()` adiciona `jti: randomUUID()` ao payload. O `jti` é o identificador único do token, usado para revogação.
+
+### Fluxo de validação (toda requisição autenticada)
+
+`JwtStrategy.validate()` executa dois passos:
+1. Desserializa o payload (sub, username, accountId, jti, exp).
+2. Consulta `TokenBlocklist.isBlocked(jti)` → Redis GET `blocklist:jti:{jti}`. Se presente: `UnauthorizedException("Token revogado.")`.
+
+### Fluxo de logout
+
+`LogoutUseCase` calcula o TTL restante (`expiresAt − now`) e chama `TokenBlocklist.block(jti, ttl)` → Redis SET `blocklist:jti:{jti}` com EX igual ao tempo restante do token. O token é inválido imediatamente, sem TTL residual desnecessário.
+
+### RedisService
+
+Implementa duas interfaces via mesma instância:
+
+```
+IDEMPOTENCY_STORE → RedisService → IdempotencyInterceptor
+TOKEN_BLOCKLIST   → RedisService → JwtStrategy, LogoutUseCase
+```
+
+---
+
+## 7. Fluxos Detalhados
+
+### 7.1 Cadastro de Usuário (`POST /users`)
+
+```
+UsersController.register(dto)
+  │  class-validator valida DTO
+  ▼
+RegisterUserUseCase.execute({ username, password })
+  │  1. new Username(input)          → normaliza + valida (≥3 chars)
+  │  2. new PlainPassword(input)     → valida política de senha
+  │  3. userRepository.findByUsername()
+  │     └─ se existe → ResourceConflictError("Username já utilizado.")
+  │  4. passwordHasher.hash(password) → PasswordHash
+  │  5. userRepository.createWithAccount()
+  │     [transação PostgreSQL]
+  │       INSERT accounts (balance = InitialBalance.create())
+  │       INSERT users    (username, password, accountId)
+  │       User.register() → UserRegistered adicionado aos eventos
+  │       retorna User (AggregateRoot)
+  │     [commit]
+  │     catch QueryFailedError code 23505 → ResourceConflictError
+  │  6. eventPublisher.publishAll(user.collectDomainEvents())
+  │     └─ UserRegisteredHandler.handle() → log
+  ▼
+201 Created { id, username }
+```
+
+A constraint `UNIQUE` no banco é a última linha de defesa contra race condition; o repositório captura `QueryFailedError 23505` e relança como `ResourceConflictError` (409).
+
+---
+
+### 7.2 Login (`POST /auth/login`)
+
+```
+AuthController.login(dto)
+  ▼
+LoginUseCase.execute({ username, password })
+  │  1. new Username(input)           → normaliza
+  │  2. userRepository.findByUsername()
+  │     └─ não existe → AuthenticationError("Credenciais inválidas.")
+  │  3. passwordHasher.compare(plain, hash)
+  │     └─ não bate → AuthenticationError("Credenciais inválidas.")
+  │  4. tokenService.sign({ sub: UserId, username, accountId })
+  │     └─ JWT payload inclui jti (randomUUID) + exp
+  ▼
+200 OK { accessToken }
+```
+
+---
+
+### 7.3 Logout (`POST /auth/logout`)
+
+```
+JwtAuthGuard → JwtStrategy.validate()
+  │  Verifica blocklist; se revogado → 401
+  ▼
+AuthController.logout(currentUser)
+  ▼
+LogoutUseCase.execute({ jti, expiresAt })
+  │  ttl = max(expiresAt − now, 1)
+  │  tokenBlocklist.block(jti, ttl)
+  │  └─ Redis SET blocklist:jti:{jti} = "1" EX {ttl}
+  ▼
+200 OK { message: "Logout realizado com sucesso." }
+```
+
+---
+
+### 7.4 Transferência (`POST /wallet/transfer`)
+
+```
+IdempotencyInterceptor (pré)
+  │  1. Header Idempotency-Key obrigatório; normaliza (lowercase)
+  │  2. Redis GET idempotency:{key}
+  │     └─ se encontra qualquer valor → ConflictException (409)
+  │  3. Redis SETNX idempotency:{key} = "processing" (TTL 5s)
+  │     └─ se falha → ConflictException (409)
+  ▼
+JwtAuthGuard → JwtStrategy.validate()
+  │  TokenBlocklist.isBlocked(jti) → se bloqueado → 401
+  ▼
+TransferAmountPipe
+  │  Valida formato; max 4 casas decimais
+  ▼
+WalletController.transfer(dto, currentUser)
+  ▼
+CreateTransferUseCase.execute({ senderUserId, senderAccountId, recipientUsername, value })
+  │  1. new TransferAmount(value)      → > 0, max 4 casas
+  │  2. userRepository.findById(sender)
+  │  3. userRepository.findByUsername(recipient)
+  │     └─ qualquer não encontrado → ResourceNotFoundError
+  │  4. sender.hasSameAccountAs(recipient)
+  │     └─ mesma conta → ValidationDomainError (auto-transferência)
+  │  5. transactionRepository.executeTransfer(
+  │       senderAccountId, recipient.accountId, amount,
+  │       (senderAccount, recipientAccount) =>
+  │         transferDomainService.execute(senderAccount, recipientAccount, amount)
+  │     )
+  │     [transação PostgreSQL]
+  │       SELECT accounts FOR UPDATE ORDER BY id  ← lock ordenado por ID (anti-deadlock)
+  │       Account.reconstitute() × 2
+  │       perform() → transferDomainService.execute()
+  │         → sender.debit(amount)    → Balance.ensureCanDebit() ou ValidationDomainError
+  │         → recipient.credit(amount)
+  │       UPDATE accounts SET balance
+  │       INSERT transactions
+  │     [commit]
+  │  6. eventPublisher.publish(new TransferExecuted(...))
+  │     └─ TransferAuditHandler.handle() → log
+  ▼
+IdempotencyInterceptor (pós)
+  │  Redis SET idempotency:{key} = JSON(response) (sobrescreve "processing" com TTL)
+  ▼
+201 Created { id, value: "10.00" }
+```
+
+---
+
+### 7.5 Saldo e Histórico
+
+```
+GET /wallet/balance
+  JwtAuthGuard → CurrentUser.accountId
+  GetBalanceUseCase → accountRepository.findById()
+  formatMoneyForDisplay(balance) → arredondamento bancário 2 casas
+  200 OK { balance: "100.00" }
+
+GET /wallet/transactions?page&limit&type&order&startDate&endDate
+  JwtAuthGuard → CurrentUser.accountId
+  TransactionsFilterPipe → valida startDate ≤ endDate
+  ListTransactionsUseCase → transactionRepository.listByAccount(filters)
+    JOIN users para usernames; classifica cash-in / cash-out; pagina
+  200 OK { data: [...], meta: { total, page, limit } }
+```
+
+---
+
+## 8. Padrões Bem Executados
+
+### 8.1 Dependency Rule sem vazamentos
+
+O domínio nunca importa de `infrastructure/`. Os casos de uso dependem apenas de interfaces injetadas via tokens simbólicos (`USER_REPOSITORY`, `ACCOUNT_REPOSITORY`, etc.). Substituir TypeORM exige modificar apenas os módulos NestJS.
+
+### 8.2 Repositórios substituíveis sem reconfiguração
+
+`InMemoryUserRepository`, `InMemoryAccountRepository` e `InMemoryTransactionRepository` implementam as mesmas interfaces que as versões TypeORM. Os testes E2E sobem a aplicação inteira (Fastify + NestJS + pipes + interceptors + filtros) sem banco de dados.
+
+### 8.3 Domain Service isolando lógica multi-agregado
+
+`TransferDomainService.execute()` é puro: recebe objetos de domínio, aplica regras (debit/credit), sem efeitos colaterais externos. Testável de forma completamente isolada.
+
+### 8.4 AggregateRoot não-enumerável
+
+`_domainEvents` é definido com `Object.defineProperty({ enumerable: false })`. Isso evita que eventos acumulados interfiram em `expect(user).toEqual(...)` nos testes, sem precisar de ajustes manuais nos matchers.
+
+### 8.5 Locks anti-deadlock por ordenação de ID
+
+`TypeOrmTransactionRepository` adquire locks `FOR UPDATE` sempre em ordem crescente de `id`. Duas transferências simultâneas `A→B` e `B→A` nunca causam deadlock porque ambas tentam bloquear `min(A,B)` antes de `max(A,B)`.
+
+### 8.6 JWT com revogação granular por `jti`
+
+Cada token possui um UUID único (`jti`). O logout grava exatamente esse ID no Redis com TTL igual ao tempo restante do token. Não há acúmulo indefinido de entradas expiradas.
+
+### 8.7 Idempotência com lock atômico NX
+
+O interceptor usa `SETNX` atômico antes de executar o handler. Isso previne que duas requisições idênticas simultâneas executem a transferência duas vezes mesmo sem cache prévio.
+
+### 8.8 Segurança no cadastro contra race condition
+
+`TypeOrmUserRepository.createWithAccount()` cria usuário e conta em uma única transação. Caso dois cadastros simultâneos com o mesmo username passem pela verificação no use case, o `INSERT` do segundo falha com `QueryFailedError 23505`, capturado e mapeado para `ResourceConflictError` (409).
+
+---
+
+## 9. Problemas Remanescentes
+
+### P1 — Idempotência retorna 409 em vez da resposta cacheada
 
 **Arquivo**: `shared/http/interceptors/idempotency.interceptor.ts`
 
 O comportamento atual:
-- Primeira requisição: processa e armazena resposta no Redis.
-- Segunda requisição com mesma chave dentro do TTL: retorna 409.
-- Segunda requisição com mesma chave após 5s: processa novamente.
+- 1ª requisição: executa e armazena resposta no Redis.
+- 2ª requisição com mesma chave dentro do TTL: retorna **409 Conflict**.
+- 2ª requisição após 5s: executa novamente.
 
-Idempotência financeira real deveria:
-1. Retornar a resposta original cacheada (não 409) quando a chave já foi processada com sucesso.
-2. TTL de 5 segundos é inadequado para operações financeiras — clientes que recebem timeout e retentam após 5s seriam cobrados duas vezes.
+Idempotência financeira padrão deveria retornar a resposta original (2xx) na repetição — não 409. Clientes que recebem timeout e retentam após 5s seriam cobrados duas vezes.
 
----
-
-### P4 — Logout sem invalidação server-side
-
-**Arquivo**: `modules/auth/auth.controller.ts`
-
-O endpoint `POST /auth/logout` apenas retorna uma mensagem. O JWT permanece válido no servidor pelo restante do período de 24h. Se o token vazar após o logout, o atacante tem acesso garantido.
-
-**Para uma carteira digital, isso é uma falha de segurança relevante.** A solução mais simples é uma blacklist no Redis com TTL igual ao restante da validade do token.
+O TTL de 5 segundos é inadequado para operações financeiras: redes móveis com latência alta podem facilmente ultrapassar essa janela.
 
 ---
 
-### P5 — Race condition no cadastro de usuário
+### P2 — `InitialBalance` é uma constante disfarçada de Value Object
 
-**Arquivo**: `modules/users/application/register-user.use-case.ts`
+**Arquivo**: `modules/wallet/domain/value-objects/initial-balance.ts`
 
-```typescript
-// Passo 1: verifica se username existe
-const existing = await this.userRepository.findByUsername(username);
-if (existing) throw new ResourceConflictError(...);
-
-// Passo 2: cria o usuário (há janela entre os dois passos)
-await this.userRepository.createWithAccount(...);
-```
-
-Dois requests simultâneos com o mesmo username podem ambos passar pelo passo 1 e depois falhar no passo 2 com uma exceção de constraint do banco não tratada. O `TypeOrmUserRepository.createWithAccount` deveria capturar `QueryFailedError` com código de erro de constraint única (`23505` no PostgreSQL) e relançar como `ResourceConflictError`.
+Um VO que só pode representar `"100.0000"` não encapsula variação — é uma constante. A invariante "toda conta começa com saldo 100" deveria ser expressa como uma constante ou diretamente no factory method de criação de conta, não como um tipo próprio.
 
 ---
 
-### P6 — `InitialBalance` como Value Object é um design smell
+### P3 — `Money` é dead code
 
-**Arquivo**: `shared/domain/value-objects/initial-balance.ts`
+**Arquivo**: `modules/wallet/domain/value-objects/money.ts`
 
-Um Value Object que só pode representar um único valor (`"100.0000"`) não agrega valor semântico — é uma constante disfarçada de objeto. A invariante "toda conta começa com 100" deveria ser expressa no módulo de criação de conta, não em um type. Isso também torna o sistema inflexível: mudar o saldo inicial exige alterar o VO e potencialmente os testes.
-
----
-
-### P7 — Entidade de domínio `Account` armazena balance como `string`
-
-**Arquivo**: `modules/wallet/domain/account.ts`
-
-```typescript
-export interface Account {
-  id: string;
-  balance: string; // "100.0000"
-}
-```
-
-A entidade de domínio usa `string`, mas a entidade TypeORM usa `number` (TypeORM converte `NUMERIC` para `number` JavaScript). A conversão `number → string` acontece no repositório e pode perder precisão para valores muito grandes. Usar `Decimal.js` ou `string` consistentemente entre as camadas seria mais seguro.
+A classe `Money` existe no módulo mas não é importada por nenhum consumidor. Semanticamente duplica `TransferAmount`. Deve ser removida.
 
 ---
 
-### P8 — Frontend sem interceptor de resposta para 401
+### P4 — Frontend sem interceptor global de 401
 
-**Arquivo**: `frontend/src/services/api.ts`
+**Arquivo**: `frontend/src/services/` (ausência)
 
-Se o JWT expirar (após 24h), as chamadas à API retornam 401. O frontend não tem um interceptor de resposta que redirecione para `/login` automaticamente. O usuário veria erros genéricos na interface.
-
----
-
-### P9 — Swagger exposto sem proteção
-
-**Arquivo**: `src/main.ts`
-
-O Swagger UI em `/api/docs` é acessível publicamente sem autenticação. Em um ambiente de produção, isso expõe a superfície de ataque da API.
+Quando o JWT expira (24h) ou é revogado pelo logout, as chamadas à API retornam 401. O frontend não possui um interceptor de resposta que redirecione automaticamente para `/login`. O usuário veria erros genéricos na interface sem entender que precisa autenticar novamente.
 
 ---
 
-### P10 — Nomes de entidades de teste são "E2E" mas testam lógica in-memory
+### P5 — Testes chamados "E2E" usam repositórios in-memory
 
-**Arquivo**: `test/business-rules.e2e-spec.ts` e `e2e-test-app.factory.ts`
+**Arquivo**: `test/business-rules.e2e-spec.ts`
 
-Os "testes E2E" usam repositórios in-memory, não o PostgreSQL real. Eles testam bem a camada de aplicação e HTTP, mas não validam as queries reais, índices, constraints do banco, ou comportamento de concorrência. Seria mais preciso chamá-los de "testes de integração de aplicação".
+Os testes sobem a aplicação Fastify completa com todos os pipes, interceptors e filtros, mas usam repositórios in-memory em vez do PostgreSQL real. Eles não validam queries SQL, índices, constraints de banco, locks pessimistas ou comportamento de concorrência real. São mais precisamente "testes de integração de aplicação" do que E2E.
 
 ---
 
-## 6. Frontend — Análise
+## 10. Frontend — Análise
 
 ### Pontos fortes
 
 - **Validação com Zod** garante que dados inválidos não chegam à API.
-- **Branded types** (`JwtToken`, `MoneyAmount`, `Username`) previnem confusões de tipo em runtime.
+- **Branded types** (`JwtToken`, `MoneyAmount`, `Username`) previnem confusões de tipo em compile time.
 - **Arredondamento bancário** (round-half-to-even) implementado consistentemente no frontend e backend.
-- **Geração de chave de idempotência** determinística baseada em `sender:recipient:value:timeWindow` evita duplicatas acidentais do formulário.
-- **AppSkeleton** com `<Suspense>` oferece boa UX durante carregamento.
+- **Chave de idempotência determinística** baseada em `sender:recipient:value:timeWindow` evita duplicatas acidentais do formulário.
 
 ### Pontos a melhorar
 
-- **Auth store lê diretamente de `localStorage`** em vez de usar um plugin de persistência (ex.: `pinia-plugin-persistedstate`). Isso é funcional mas frágil.
+- **Auth store em `localStorage`** sem plugin de persistência — funcional mas frágil.
 - **Sem refresh token** — sessão expira em 24h sem aviso ao usuário.
-- **`DashboardView.vue` é monolítico** — contém lógica de transfer, balance e histórico em um único componente. Poderia ser decomposto.
-- **Sem tratamento de 401 global** conforme P8.
+- **`DashboardView.vue` monolítico** — contém lógica de transfer, balance e histórico no mesmo componente.
+- **Sem tratamento global de 401** — ver P4.
 
 ---
 
-## 7. Segurança
+## 11. Segurança
 
 | Controle | Status | Detalhe |
 |----------|--------|---------|
-| Bcrypt (10 rounds) | ✅ | Adequado |
-| JWT com expiração | ✅ | 24h |
+| Bcrypt (10 rounds) | ✅ | Adequado para senhas |
+| JWT com expiração de 24h | ✅ | `exp` no payload |
+| `jti` por token + blocklist Redis | ✅ | Logout invalida token imediatamente |
 | HTTPS (Helmet HSTS) | ✅ | Apenas em produção |
 | CSP via Helmet | ✅ | |
-| Rate limiting | ✅ | 30 req/min global |
-| CORS restrito | ✅ | Single origin |
-| Locks pessimistas | ✅ | Previne race na transferência |
-| Idempotência | ⚠️ | Incompleta (ver P3) |
-| Invalidação de logout | ❌ | JWT permanece válido (ver P4) |
-| Swagger protegido | ❌ | Exposto publicamente (ver P9) |
-| Tratamento de constraint única | ❌ | Race condition no cadastro (ver P5) |
-
----
-
-## 8. Resumo
-
-A aplicação demonstra **boa compreensão de Clean Architecture** e uso sólido de **Value Objects DDD**. O desacoplamento via interfaces de repositório e tokens de DI é correto e permite testabilidade sem banco. A separação controllers → use cases → domínio → infraestrutura é respeitada na maior parte do código.
-
-Os problemas mais relevantes — em ordem de impacto — são:
-
-1. **Lógica de negócio no repositório** (P1/P2): mina a separação de camadas e duplica regras.
-2. **Idempotência incompleta** (P3): risco real em operações financeiras com retry.
-3. **Logout sem invalidação** (P4): falha de segurança em uma carteira digital.
-4. **Race condition no cadastro** (P5): pode expor 500 interno ao usuário.
-
-Os demais são design smells ou melhorias incrementais, não bloqueadores críticos.
+| Rate limiting (30 req/min) | ✅ | Global via ThrottlerGuard |
+| CORS restrito (single origin) | ✅ | |
+| Locks pessimistas ordenados | ✅ | Previne race na transferência e deadlock |
+| Constraint única + captura 23505 | ✅ | Previne race no cadastro |
+| Swagger protegido | ✅ | Condicional a `NODE_ENV !== "production"` |
+| Idempotência (deduplicação) | ⚠️ | Previne double-spend, mas TTL de 5s é curto |
+| Refresh token / aviso de expiração | ❌ | Sem mecanismo no frontend |
