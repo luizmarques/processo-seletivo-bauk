@@ -21,12 +21,14 @@ import { IdempotencyInterceptor } from "../shared/http/interceptors/idempotency.
 import { createRequestValidationPipe } from "../shared/http/pipes/request-validation-options";
 import {
   ACCOUNT_REPOSITORY,
+  DOMAIN_EVENT_PUBLISHER,
   IDEMPOTENCY_STORE,
   PASSWORD_HASHER,
   TOKEN_SERVICE,
   TRANSACTION_REPOSITORY,
   USER_REPOSITORY,
 } from "../shared/constants/injection-tokens";
+import { NoopDomainEventPublisher } from "../shared/events/noop-domain-event-publisher";
 import { InMemoryStore } from "../infrastructure/database/in-memory/in-memory-store";
 import { InMemoryUserRepository } from "../infrastructure/database/in-memory/repositories/in-memory-user.repository";
 import { InMemoryAccountRepository } from "../infrastructure/database/in-memory/repositories/in-memory-account.repository";
@@ -68,6 +70,7 @@ export async function createE2ETestApp(): Promise<E2ETestAppContext> {
       { provide: USER_REPOSITORY, useClass: InMemoryUserRepository },
       { provide: ACCOUNT_REPOSITORY, useClass: InMemoryAccountRepository },
       { provide: TRANSACTION_REPOSITORY, useClass: InMemoryTransactionRepository },
+      { provide: DOMAIN_EVENT_PUBLISHER, useClass: NoopDomainEventPublisher },
     ],
   }).compile();
 

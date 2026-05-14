@@ -10,6 +10,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { UsersModule } from "./modules/users/users.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
 import { RedisModule } from "./shared/redis/redis.module";
+import { EventsModule } from "./shared/events/events.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RedisModule } from "./shared/redis/redis.module";
     // Padrão global: 30 requisições por minuto por IP.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
     RedisModule,
+    EventsModule,
     AuthModule,
     UsersModule,
     WalletModule,
