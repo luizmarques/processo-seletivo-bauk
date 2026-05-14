@@ -48,15 +48,17 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(createRequestValidationPipe());
   app.useGlobalFilters(new DomainExceptionFilter());
 
-  const config = new DocumentBuilder()
-    .setTitle("Bauk Transfer API")
-    .setDescription("API de transferências internas entre usuários")
-    .setVersion("1.0.0")
-    .addBearerAuth()
-    .build();
+  if (process.env.NODE_ENV !== "production") {
+    const config = new DocumentBuilder()
+      .setTitle("Bauk Transfer API")
+      .setDescription("API de transferências internas entre usuários")
+      .setVersion("1.0.0")
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document);
+  }
 
   await app.listen(process.env.PORT ?? 3000);
 }
