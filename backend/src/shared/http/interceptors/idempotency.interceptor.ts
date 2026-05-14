@@ -7,7 +7,7 @@ import {
   Injectable,
   NestInterceptor,
 } from "@nestjs/common";
-import { Observable, from } from "rxjs";
+import { Observable, from, of } from "rxjs";
 import { map, mergeMap } from "rxjs/operators";
 import { IDEMPOTENCY_STORE } from "../../constants/injection-tokens";
 import type { IdempotencyStore } from "../../redis/idempotency-store";
@@ -40,8 +40,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     return from(this.store.get(cacheKey)).pipe(
       mergeMap((cachedResponse) => {
-        if (cachedResponse) {
+        if (cachedResponse === "processing") {
           throw new ConflictException(IDEMPOTENCY_LOCK_MESSAGE);
+        }
+
+        if (cachedResponse !== null) {
+          return of(JSON.parse(cachedResponse) as unknown);
         }
 
         return from(

@@ -188,7 +188,7 @@ describe("Wallet HTTP Integration", () => {
     ]);
   });
 
-  it("POST /wallet/transfer bloqueia repeticao pela idempotencia com mensagem ao usuario", async () => {
+  it("POST /wallet/transfer retorna resposta cacheada na repeticao sem chamar o use case novamente", async () => {
     const firstResponse = await context.app.inject({
       method: "POST",
       url: "/wallet/transfer",
@@ -204,17 +204,12 @@ describe("Wallet HTTP Integration", () => {
     });
 
     expect(firstResponse.statusCode).toBe(201);
-    expect(secondResponse.statusCode).toBe(409);
-    expect(secondResponse.json()).toEqual({
-      message:
-        "Esta transação acabou de ser realizada e, por segurança, não pode ser enviada novamente agora.",
-      error: "Conflict",
-      statusCode: 409,
-    });
+    expect(secondResponse.statusCode).toBe(201);
+    expect(secondResponse.json()).toEqual(firstResponse.json());
     expect(context.createTransferUseCase.calls).toHaveLength(1);
   });
 
-  it("POST /wallet/transfer bloqueia repeticao mesmo quando a mesma chave muda de casing", async () => {
+  it("POST /wallet/transfer trata a mesma chave com casing diferente como repeticao idempotente", async () => {
     const firstResponse = await context.app.inject({
       method: "POST",
       url: "/wallet/transfer",
@@ -230,7 +225,8 @@ describe("Wallet HTTP Integration", () => {
     });
 
     expect(firstResponse.statusCode).toBe(201);
-    expect(secondResponse.statusCode).toBe(409);
+    expect(secondResponse.statusCode).toBe(201);
+    expect(secondResponse.json()).toEqual(firstResponse.json());
     expect(context.createTransferUseCase.calls).toHaveLength(1);
   });
 
