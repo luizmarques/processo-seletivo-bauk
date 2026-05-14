@@ -3,6 +3,7 @@ import {
   ValidationDomainError,
 } from "../../../shared/domain/errors/domain.errors";
 import { Account } from "../domain/account";
+import type { DomainEvent } from "../../../shared/domain/events/domain-event";
 import type { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import { User } from "../../users/domain/user";
 import { CreateTransferUseCase } from "./create-transfer.use-case";
@@ -59,10 +60,23 @@ class FakeTransactionRepository {
   }
 }
 
+class FakeDomainEventPublisher {
+  public published: DomainEvent[] = [];
+
+  async publish(event: DomainEvent): Promise<void> {
+    this.published.push(event);
+  }
+
+  async publishAll(events: DomainEvent[]): Promise<void> {
+    this.published.push(...events);
+  }
+}
+
 describe("CreateTransferUseCase", () => {
   function createSut() {
     const userRepository = new FakeTransferUserRepository();
     const transactionRepository = new FakeTransactionRepository();
+    const eventPublisher = new FakeDomainEventPublisher();
 
     userRepository.usersById.set(
       senderUserId,
@@ -76,9 +90,10 @@ describe("CreateTransferUseCase", () => {
     const sut = new CreateTransferUseCase(
       userRepository as never,
       transactionRepository as never,
+      eventPublisher as never,
     );
 
-    return { sut, userRepository, transactionRepository };
+    return { sut, userRepository, transactionRepository, eventPublisher };
   }
 
   it("transfere saldo em quatro casas e retorna valor arredondado ao usuario", async () => {
@@ -99,6 +114,20 @@ describe("CreateTransferUseCase", () => {
         value: "10.9876",
       },
     ]);
+  });
+
+  it("publica evento TransferExecuted apos transferencia bem-sucedida", async () => {
+    const { sut, eventPublisher } = createSut();
+
+    await sut.execute({
+      senderUserId,
+      senderAccountId,
+      recipientUsername: "johndoe",
+      value: "10.0000",
+    });
+
+    expect(eventPublisher.published).toHaveLength(1);
+    expect(eventPublisher.published[0].eventName).toBe("transfer.executed");
   });
 
   it("normaliza valor inteiro antes de enviar ao repositorio", async () => {

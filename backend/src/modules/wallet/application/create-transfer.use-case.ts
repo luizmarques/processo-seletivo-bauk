@@ -2,15 +2,18 @@ import { Inject, Injectable } from "@nestjs/common";
 import {
   TRANSACTION_REPOSITORY,
   USER_REPOSITORY,
+  DOMAIN_EVENT_PUBLISHER,
 } from "../../../shared/constants/injection-tokens";
 import {
   ResourceNotFoundError,
   ValidationDomainError,
 } from "../../../shared/domain/errors/domain.errors";
+import type { DomainEventPublisher } from "../../../shared/domain/events/domain-event-publisher";
 import { formatMoneyForDisplay } from "../../../shared/domain/value-objects/money-format";
 import { TransferAmount } from "../../../shared/domain/value-objects/transfer-amount";
 import { UserId } from "../../../shared/domain/value-objects/user-id";
 import { Username } from "../../../shared/domain/value-objects/username";
+import { TransferExecuted } from "../domain/events/transfer-executed.event";
 import type { TransactionRepository } from "../domain/transaction.repository";
 import type { UserRepository } from "../../users/domain/user.repository";
 
@@ -20,6 +23,8 @@ export class CreateTransferUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: TransactionRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER)
+    private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(input: {
@@ -51,10 +56,19 @@ export class CreateTransferUseCase {
       input.senderAccountId,
       recipient.accountId,
       amount,
-      (sender, recipient) => {
-        sender.debit(amount);
-        recipient.credit(amount);
+      (senderAccount, recipientAccount) => {
+        senderAccount.debit(amount);
+        recipientAccount.credit(amount);
       },
+    );
+
+    await this.eventPublisher.publish(
+      new TransferExecuted(
+        transaction.id,
+        input.senderAccountId,
+        recipient.accountId,
+        amount.toString(),
+      ),
     );
 
     return {

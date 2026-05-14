@@ -11,6 +11,7 @@ import {
 import { IdempotencyInterceptor } from "../../shared/http/interceptors/idempotency.interceptor";
 import { UsersModule } from "../users/users.module";
 import { CreateTransferUseCase } from "./application/create-transfer.use-case";
+import { TransferAuditHandler } from "./application/handlers/transfer-audit.handler";
 import { GetBalanceUseCase } from "./application/get-balance.use-case";
 import { ListTransactionsUseCase } from "./application/list-transactions.use-case";
 import { WalletController } from "./wallet.controller";
@@ -25,6 +26,7 @@ import { WalletController } from "./wallet.controller";
     GetBalanceUseCase,
     CreateTransferUseCase,
     ListTransactionsUseCase,
+    TransferAuditHandler,
     // Necessário para o Nest instanciar via DI (RedisService) na aplicação real.
     IdempotencyInterceptor,
     { provide: ACCOUNT_REPOSITORY, useClass: TypeOrmAccountRepository },
