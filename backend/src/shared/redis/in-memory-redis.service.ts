@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { TokenBlocklist } from "../auth/token-blocklist";
 import type { IdempotencyStore } from "./idempotency-store";
 
 interface Entry {
@@ -7,7 +8,7 @@ interface Entry {
 }
 
 @Injectable()
-export class InMemoryRedisService implements IdempotencyStore {
+export class InMemoryRedisService implements IdempotencyStore, TokenBlocklist {
   private readonly store = new Map<string, Entry>();
 
   private makeEntry(value: string, ttlSeconds: number): Entry {
@@ -41,6 +42,14 @@ export class InMemoryRedisService implements IdempotencyStore {
     if (existing && !this.isExpired(existing)) return false;
     this.store.set(key, this.makeEntry(value, ttlSeconds));
     return true;
+  }
+
+  async block(jti: string, ttlSeconds: number): Promise<void> {
+    await this.set(`blocklist:jti:${jti}`, "1", ttlSeconds);
+  }
+
+  async isBlocked(jti: string): Promise<boolean> {
+    return (await this.get(`blocklist:jti:${jti}`)) !== null;
   }
 
   reset(): void {

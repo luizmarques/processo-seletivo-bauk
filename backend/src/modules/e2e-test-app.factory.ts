@@ -7,10 +7,12 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth/auth.controller";
 import { LoginUseCase } from "./auth/application/login.use-case";
+import { LogoutUseCase } from "./auth/application/logout.use-case";
 import { UsersController } from "./users/users.controller";
 import { RegisterUserUseCase } from "./users/application/register-user.use-case";
 import { WalletController } from "./wallet/wallet.controller";
 import { CreateTransferUseCase } from "./wallet/application/create-transfer.use-case";
+import { TransferDomainService } from "./wallet/domain/transfer.domain-service";
 import { GetBalanceUseCase } from "./wallet/application/get-balance.use-case";
 import { ListTransactionsUseCase } from "./wallet/application/list-transactions.use-case";
 import { JwtStrategy } from "../shared/auth/jwt.strategy";
@@ -24,6 +26,7 @@ import {
   DOMAIN_EVENT_PUBLISHER,
   IDEMPOTENCY_STORE,
   PASSWORD_HASHER,
+  TOKEN_BLOCKLIST,
   TOKEN_SERVICE,
   TRANSACTION_REPOSITORY,
   USER_REPOSITORY,
@@ -58,7 +61,9 @@ export async function createE2ETestApp(): Promise<E2ETestAppContext> {
     providers: [
       RegisterUserUseCase,
       LoginUseCase,
+      LogoutUseCase,
       CreateTransferUseCase,
+      TransferDomainService,
       GetBalanceUseCase,
       ListTransactionsUseCase,
       JwtStrategy,
@@ -66,6 +71,7 @@ export async function createE2ETestApp(): Promise<E2ETestAppContext> {
       { provide: PASSWORD_HASHER, useClass: BcryptPasswordService },
       { provide: TOKEN_SERVICE, useClass: JwtTokenService },
       { provide: IDEMPOTENCY_STORE, useValue: redisService },
+      { provide: TOKEN_BLOCKLIST, useValue: redisService },
       { provide: InMemoryStore, useValue: store },
       { provide: USER_REPOSITORY, useClass: InMemoryUserRepository },
       { provide: ACCOUNT_REPOSITORY, useClass: InMemoryAccountRepository },

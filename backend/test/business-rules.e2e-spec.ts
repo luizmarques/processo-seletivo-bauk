@@ -168,7 +168,7 @@ describe('Business Rules E2E', () => {
       expect(balanceRes.json<{ balance: string }>().balance).toBe('90.00');
     });
 
-    it('impede double-spend quando a mesma chave de idempotência é reenviada na janela de proteção', async () => {
+    it('devolve resposta em cache quando a mesma chave de idempotência é reenviada na janela de proteção', async () => {
       const [token] = await Promise.all([
         registerAndLogin('alice'),
         registerAndLogin('bob'),
@@ -178,13 +178,15 @@ describe('Business Rules E2E', () => {
       const second = await transfer(token, 'bob', '10.00', 'ALICE:BOB:10.0000:001');
 
       expect(first.statusCode).toBe(201);
-      expect(second.statusCode).toBe(409);
-      expect(second.json()).toEqual({
-        message:
-          'Esta transação acabou de ser realizada e, por segurança, não pode ser enviada novamente agora.',
-        error: 'Conflict',
-        statusCode: 409,
+      expect(second.statusCode).toBe(201);
+      expect(second.json()).toMatchObject(first.json());
+
+      const balanceRes = await context.app.inject({
+        method: 'GET',
+        url: '/wallet/balance',
+        headers: { authorization: `Bearer ${token}` },
       });
+      expect(balanceRes.json<{ balance: string }>().balance).toBe('90.00');
     });
 
     it('rejeita a transferência quando o saldo for insuficiente', async () => {
