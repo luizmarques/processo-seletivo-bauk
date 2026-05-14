@@ -52,6 +52,6 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   private toUser(entity: UserEntity): User {
-    return new User(entity.id, entity.username, entity.accountId, entity.password);
+    return User.reconstitute(entity.id, entity.username, entity.accountId, entity.password);
   }
 }

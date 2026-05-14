@@ -10,6 +10,6 @@ export class InMemoryAccountRepository implements AccountRepository {
   async findById(id: string): Promise<Account | null> {
     const stored = this.store.accounts.get(id);
     if (!stored) return null;
-    return new Account(stored.id, stored.balance);
+    return Account.reconstitute(stored.id, stored.balance);
   }
 }

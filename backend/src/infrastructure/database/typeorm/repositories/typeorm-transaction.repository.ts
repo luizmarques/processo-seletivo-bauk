@@ -2,9 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
 import { Brackets, EntityManager, Repository } from "typeorm";
 import { TransactionRecord } from "../../../../modules/wallet/domain/transaction-record";
+import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
-import { Balance } from "../../../../shared/domain/value-objects/balance";
-import { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
 import { AccountEntity } from "../entities/account.entity";
 import { TransactionEntity } from "../entities/transaction.entity";
 import type {
@@ -21,45 +21,43 @@ export class TypeOrmTransactionRepository implements TransactionRepository {
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
 
-  async executeTransfer(input: {
-    senderAccountId: string;
-    recipientAccountId: string;
-    value: string;
-  }): Promise<{ id: string; value: string }> {
+  async executeTransfer(
+    senderAccountId: string,
+    recipientAccountId: string,
+    amount: TransferAmount,
+    perform: (sender: Account, recipient: Account) => void,
+  ): Promise<{ id: string; value: string }> {
     return this.entityManager.transaction(async (manager) => {
-      const lockedAccounts = await manager
+      const lockedEntities = await manager
         .createQueryBuilder(AccountEntity, "account")
         .setLock("pessimistic_write")
         .where("account.id IN (:...accountIds)", {
-          accountIds: [input.senderAccountId, input.recipientAccountId].sort(),
+          accountIds: [senderAccountId, recipientAccountId].sort(),
         })
         .orderBy("account.id", "ASC")
         .getMany();
 
-      const senderAccount = lockedAccounts.find(
-        (account) => account.id === input.senderAccountId,
-      );
-      const recipientAccount = lockedAccounts.find(
-        (account) => account.id === input.recipientAccountId,
-      );
+      const senderEntity = lockedEntities.find((e) => e.id === senderAccountId);
+      const recipientEntity = lockedEntities.find((e) => e.id === recipientAccountId);
 
-      if (!senderAccount || !recipientAccount) {
+      if (!senderEntity || !recipientEntity) {
         throw new ResourceNotFoundError("Conta não encontrada.");
       }
 
-      const amount = new TransferAmount(input.value);
-      const senderBalance = new Balance(senderAccount.balance);
-      const recipientBalance = new Balance(recipientAccount.balance);
+      const sender = Account.reconstitute(senderEntity.id, senderEntity.balance);
+      const recipient = Account.reconstitute(recipientEntity.id, recipientEntity.balance);
 
-      senderAccount.balance = senderBalance.debit(amount).toString();
-      recipientAccount.balance = recipientBalance.credit(amount).toString();
+      perform(sender, recipient);
 
-      await manager.save(AccountEntity, [senderAccount, recipientAccount]);
+      senderEntity.balance = sender.balance.toString();
+      recipientEntity.balance = recipient.balance.toString();
+
+      await manager.save(AccountEntity, [senderEntity, recipientEntity]);
 
       const transaction = manager.create(TransactionEntity, {
-        debitedAccountId: input.senderAccountId,
-        creditedAccountId: input.recipientAccountId,
-        value: input.value,
+        debitedAccountId: senderAccountId,
+        creditedAccountId: recipientAccountId,
+        value: amount.toString(),
       });
       const saved = await manager.save(transaction);
       return { id: saved.id, value: saved.value };

@@ -32,7 +32,7 @@ export class InMemoryUserRepository implements UserRepository {
       userId,
     });
 
-    const user = new User(userId, input.username, accountId, input.password);
+    const user = User.register(userId, input.username, accountId, input.password);
     this.store.users.set(userId, user);
     this.store.usernameIndex.set(input.username, userId);
 

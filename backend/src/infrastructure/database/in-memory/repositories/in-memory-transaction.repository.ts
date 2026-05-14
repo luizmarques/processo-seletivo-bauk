@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { TransactionRecord } from "../../../../modules/wallet/domain/transaction-record";
+import { Account } from "../../../../modules/wallet/domain/account";
 import { ResourceNotFoundError } from "../../../../shared/domain/errors/domain.errors";
-import { Balance } from "../../../../shared/domain/value-objects/balance";
-import { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
+import type { TransferAmount } from "../../../../shared/domain/value-objects/transfer-amount";
 import type {
   PaginatedTransactionRecords,
   TransactionFilters,
@@ -15,32 +15,37 @@ import { InMemoryStore } from "../in-memory-store";
 export class InMemoryTransactionRepository implements TransactionRepository {
   constructor(private readonly store: InMemoryStore) {}
 
-  async executeTransfer(input: {
-    senderAccountId: string;
-    recipientAccountId: string;
-    value: string;
-  }): Promise<{ id: string; value: string }> {
-    const senderStored = this.store.accounts.get(input.senderAccountId);
-    const recipientStored = this.store.accounts.get(input.recipientAccountId);
+  async executeTransfer(
+    senderAccountId: string,
+    recipientAccountId: string,
+    amount: TransferAmount,
+    perform: (sender: Account, recipient: Account) => void,
+  ): Promise<{ id: string; value: string }> {
+    const senderStored = this.store.accounts.get(senderAccountId);
+    const recipientStored = this.store.accounts.get(recipientAccountId);
 
     if (!senderStored || !recipientStored) {
       throw new ResourceNotFoundError("Conta não encontrada.");
     }
 
-    const amount = new TransferAmount(input.value);
-    senderStored.balance = new Balance(senderStored.balance).debit(amount).toString();
-    recipientStored.balance = new Balance(recipientStored.balance).credit(amount).toString();
+    const sender = Account.reconstitute(senderAccountId, senderStored.balance);
+    const recipient = Account.reconstitute(recipientAccountId, recipientStored.balance);
+
+    perform(sender, recipient);
+
+    senderStored.balance = sender.balance.toString();
+    recipientStored.balance = recipient.balance.toString();
 
     const id = randomUUID();
     this.store.transactions.push({
       id,
-      debitedAccountId: input.senderAccountId,
-      creditedAccountId: input.recipientAccountId,
-      value: input.value,
+      debitedAccountId: senderAccountId,
+      creditedAccountId: recipientAccountId,
+      value: amount.toString(),
       createdAt: new Date(),
     });
 
-    return { id, value: input.value };
+    return { id, value: amount.toString() };
   }
 
   async listByAccount(filters: TransactionFilters): Promise<PaginatedTransactionRecords> {

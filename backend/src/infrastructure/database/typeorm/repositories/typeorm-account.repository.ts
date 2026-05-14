@@ -14,6 +14,6 @@ export class TypeOrmAccountRepository implements AccountRepository {
 
   async findById(id: string): Promise<Account | null> {
     const entity = await this.repository.findOne({ where: { id } });
-    return entity ? new Account(entity.id, entity.balance) : null;
+    return entity ? Account.reconstitute(entity.id, entity.balance) : null;
   }
 }
